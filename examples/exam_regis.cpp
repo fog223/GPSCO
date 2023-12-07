@@ -44,7 +44,7 @@ int main()
 	params.CurvatureThreshold = 1.0;
 	params.parallel_thresh = 5.0;
 	params.coplanar_thresh = 2.0;
-	params.dist_thresh = 0.5;
+	params.dist_thresh = 0.05;
 	if (GPSCO::Registration::Regis(cloud_src, cloud_tgt, params, RT))
 	{
 		spdlog::info("Point cloud registration is successful!!! The transformation matrix is");

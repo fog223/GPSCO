@@ -49,4 +49,17 @@ namespace GPSCO
 		Eigen::Vector3f centroid;
 		std::vector<float> coefficients; // Ax+By+Cz+D=0
 	};
+
+	// The distance from point to plane
+	float distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const float& d);
+
+	// Hash
+	using Array3I = std::array<int, 3>;
+	struct HashArray3I
+	{
+		std::size_t operator()(const Array3I& rhs) const noexcept
+		{
+			return (std::hash<int>()(rhs[0])) ^ (std::hash<int>()(rhs[1])) ^ (std::hash<int>()(rhs[2]));
+		}
+	};
 }

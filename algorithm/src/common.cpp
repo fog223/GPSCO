@@ -47,4 +47,11 @@ namespace GPSCO
 		coefficients.push_back(normal[2]);
 		coefficients.push_back(-normal.dot(centroid));
 	}
+
+	float
+	distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const float& d)
+	{
+		float distance = (point.dot(planeNormal) + d) / planeNormal.norm();
+		return std::fabs(distance);
+	}
 }

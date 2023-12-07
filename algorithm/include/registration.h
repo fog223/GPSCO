@@ -50,18 +50,14 @@ namespace GPSCO
 		bool
 		operator<(const MatchGroup& b) const
 		{
-			if (match_num == b.match_num)
-				return score > b.score;
-			else
-				return match_num > b.match_num;
+			return match_num > b.match_num;
 		}
 
 	 public:
 		int group1_index;
 		int group2_index;
-		std::vector<std::pair<int, int>> planepairs;
-		int match_num;
-		float score;
+		std::vector<std::pair<int, int>> planepairs; // planes_src and planes_tgt correspond one to one
+		int match_num; // Matching score of two plane groups
 	};
 
 	// In the same point cloud, two plane groups that meet the requirements (30~150°)
@@ -93,20 +89,17 @@ namespace GPSCO
 		float group_angle23; // The angle between group2 and group3
 	};
 
-// 不同点云中, 符合配准阈值的平面组（三个平面）对
+	// Three pairs of non-parallel planar groups in different point clouds that meet the requirements
 	class Group_Three_Pair
 	{
 	 public:
 		Group_Three_Pair();
 		~Group_Three_Pair();
 
+		// Sort, Descending
 		bool operator<(const Group_Three_Pair& b) const
 		{
-			if (match_num == b.match_num)
-			{
-				return score > b.score;
-			}
-			return match_num > b.match_num;
+			return match_score > b.match_score;
 		}
 
 	 public:
@@ -123,8 +116,7 @@ namespace GPSCO
 		std::vector<Eigen::Matrix3f> Rs; // 候选的变换矩阵
 		std::vector<Eigen::Vector3f> Ts; // 候选的平移向量
 
-		int match_num; // 三组对应平面分数，出现的非1分个数，（例：2+2+2 > 5+5+1）
-		float score; // 三个对应平面分数总和
+		float match_score; // Sum of matching scores for the three corresponding plane groups
 	};
 
 // 变换矩阵
@@ -200,22 +192,110 @@ namespace GPSCO
 			const std::vector<GPSCO::PLANE>& Planes,
 			float parallel_thresh,
 			float coplanar_thresh,
-			std::vector<std::vector<std::vector<GPSCO::PLANE>>>& PlaneGroups);
+			std::vector<std::vector<std::vector<int>>>& PlaneGroups);
 
 		/// Save the plane groups separately, with different colour
+		/// \param Planes
 		/// \param PlaneGroups
 		/// \param outpath
 		/// \return .txt
 		bool Export_groups(
-			std::vector<std::vector<std::vector<GPSCO::PLANE>>>& PlaneGroups,
+			const std::vector<GPSCO::PLANE>& Planes,
+			std::vector<std::vector<std::vector<int>>>& PlaneGroups,
 			std::string outpath);
 
 		/// Save the plane clusters separately, with different colour
+		/// \param Planes
 		/// \param PlaneGroups
 		/// \param outpath
 		/// \return .txt
 		bool Export_cluster(
-			std::vector<std::vector<std::vector<GPSCO::PLANE>>>& PlaneGroups,
+			const std::vector<GPSCO::PLANE>& Planes,
+			std::vector<std::vector<std::vector<int>>>& PlaneGroups,
 			std::string outpath);
+
+		/// Evaluate matching scores between plane groups based on moving alignment method
+		/// \param Planes_src
+		/// \param Planes_tgt
+		/// \param PlaneGroups_src plane groups in source point cloud
+		/// \param PlaneGroups_tgt plane groups in target point cloud
+		/// \param dist_thresh matching threshold
+		/// \param group_table A table of matching relationship between plane groups
+		/// \return
+		bool Compute_Group_Table(
+			const std::vector<GPSCO::PLANE>& Planes_src,
+			const std::vector<GPSCO::PLANE>& Planes_tgt,
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_src,
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_tgt,
+			float dist_thresh,
+			std::vector<std::vector<std::vector<MatchGroup>>>& group_table);
+
+		/// Maximum number of aligned planes between two plane groups
+		/// \param group1_index Subscript index value of group 1
+		/// \param group2_index Subscript index value of group 2
+		/// \param Planes_src
+		/// \param Planes_tgt
+		/// \param planegroup_src a plane group in source point cloud
+		/// \param planegroup_tgt a plane group in target point cloud
+		/// \param dist_thresh
+		/// \param match_vec Storage plane correspondence
+		/// \return
+		bool Moving_alignment(
+			int group1_index,
+			int group2_index,
+			const std::vector<GPSCO::PLANE>& Planes_src,
+			const std::vector<GPSCO::PLANE>& Planes_tgt,
+			const std::vector<std::vector<int>>& planegroup_src,
+			const std::vector<std::vector<int>>& planegroup_tgt,
+			float dist_thresh,
+			std::vector<MatchGroup>& match_vec);
+
+		// The distance between two plane clusters
+		/// \param Planes plane set
+		/// \param Normal_avg Average normal vector of plane group
+		/// \param cluster1 planar cluster 1
+		/// \param cluster2 planar cluster 2
+		/// \return distance between planar clusters
+		float dist_TwoClsuter(
+			const std::vector<GPSCO::PLANE>& Planes,
+			const Eigen::Vector3f Normal_avg,
+			const std::vector<int>& cluster1,
+			const std::vector<int>& cluster2);
+
+		/// In the same point cloud, obtain three plane groups that meet the requirements.
+		/// The angles between the plane groups are in the range of angle_min~angle_max. Generally set to 30~150
+		/// \param Planes plane set
+		/// \param PlaneGroups plane group set
+		/// \param angle_min minimum angle
+		/// \param angle_max maximum angle
+		/// \param group_three_vector Eligible candidates
+		/// \return does it exist
+		bool Get_Group_Three(
+			const std::vector<GPSCO::PLANE>& Planes,
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups,
+			float angle_min,
+			float angle_max,
+			std::vector<GPSCO::Group_Three>& group_three_vector);
+
+		/// The GPSCO algorithm is used to directly determine the optimal match.
+		/// When there is more than one optimal situation, the transformation matrix is verified.
+		/// \param Planes_src
+		/// \param Planes_tgt
+		/// \param PlaneGroups_src
+		/// \param PlaneGroups_tgt
+		/// \param group_table
+		/// \param group_three_vector_src candidates in source point cloud
+		/// \param group_three_vector_tgt candidates in target point cloud
+		/// \param final_rt final registration result
+		/// \return
+		bool Get_transformation_matrix(
+			const std::vector<GPSCO::PLANE>& Planes_src,
+			const std::vector<GPSCO::PLANE>& Planes_tgt,
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_src,
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_tgt,
+			std::vector<std::vector<std::vector<MatchGroup>>>& group_table,
+			const std::vector<GPSCO::Group_Three>& group_three_vector_src,
+			const std::vector<GPSCO::Group_Three>& group_three_vector_tgt,
+			Eigen::Matrix4f& final_rt);
 	}
 }
