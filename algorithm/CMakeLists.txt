@@ -14,9 +14,11 @@ target_sources(${LIB_NAME}
         PUBLIC
         ./include/common.h
         ./include/plane_extraction.h
+        ./include/registration.h
         PRIVATE
         ./src/common.cpp
-        ./src/plane_extraction.cpp)
+        ./src/plane_extraction.cpp
+        ./src/registration.cpp)
 
 # link PCL
 target_link_libraries(${LIB_NAME} PRIVATE ${PCL_LIBRARIES})

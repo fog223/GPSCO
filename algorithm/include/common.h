@@ -43,41 +43,7 @@ namespace GPSCO
 		void
 		ComputeProperties();
 
-		/// add a point into points
-		void addpoint(const pcl::PointXYZ pt)
-		{
-			points->push_back(pt);
-		}
-
-		///
-		/// \return
-		cloudptr GetCloud()
-		{
-			return points;
-		}
-
-		///
-		/// \return
-		Eigen::Vector3f GetNormal()
-		{
-			return normal;
-		}
-
-		///
-		/// \return
-		Eigen::Vector3f GetCentroid()
-		{
-			return centroid;
-		}
-
-		///
-		/// \return
-		std::vector<float> GetCoefficients()
-		{
-			return coefficients;
-		}
-
-	 private:
+	 public:
 		cloudptr points;
 		Eigen::Vector3f normal;
 		Eigen::Vector3f centroid;

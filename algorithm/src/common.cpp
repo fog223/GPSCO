@@ -1,4 +1,4 @@
-﻿// pcl
+// pcl
 #include <pcl/common/impl/centroid.hpp>
 // EIGEN
 #include <Eigen/Eigenvalues>

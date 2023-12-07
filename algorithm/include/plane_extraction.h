@@ -1,4 +1,4 @@
-﻿/**
+/**
  *  \file   plane_extraction.h
  *  \brief  Planar extraction based on region growing algorithm
  *  and saving each plane separately using unused colours
@@ -39,7 +39,7 @@ namespace GPSCO
 		/// Save the planes separately, with colour
 		/// \param Planes Plane to be exported
 		/// \param outpath File Save Path
-		/// \return
+		/// \return .txt
 		bool Export_txt(
 			std::vector<GPSCO::PLANE>& Planes,
 			std::string outpath);

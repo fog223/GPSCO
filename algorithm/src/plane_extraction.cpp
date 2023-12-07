@@ -7,6 +7,7 @@
 // pcl
 #include <pcl/features/normal_3d_omp.h>
 #include <pcl/segmentation/region_growing.h>
+#include <pcl/io/ply_io.h>
 // local
 #include "plane_extraction.h"
 
@@ -65,11 +66,11 @@ namespace GPSCO
 					GPSCO::PLANE plane;
 					for (const auto& idx : cluster.indices)
 					{
-						plane.addpoint(cloud->points[idx]);
+						plane.points->push_back(cloud->points[idx]);
 					}
+					plane.ComputeProperties();
 					outPlanes.push_back(plane);
 				}
-
 				spdlog::info("The number of planes extracted is {}.", outPlanes.size());
 				return true;
 			}
@@ -95,9 +96,9 @@ namespace GPSCO
 					auto green_ = (rgb >> 8) & 0xff;
 					auto blue_ = rgb & 0xff;
 
-					std::string file = outpath + std::to_string(i + 1) + ".txt";
+					std::string file = outpath + "p" + std::to_string(i + 1) + ".txt";
 					outfile.open(file);
-					for (const auto& pt : Planes[i].GetCloud()->points)
+					for (const auto& pt : Planes[i].points->points)
 					{
 						outfile << pt.x << " " << pt.y << " " << pt.z << " " <<
 								red_ << " " << green_ << " " << blue_ << std::endl;
