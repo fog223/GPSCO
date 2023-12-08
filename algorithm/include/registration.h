@@ -110,62 +110,41 @@ namespace GPSCO
 		int group_tgt_index2;
 		int group_tgt_index3;
 
-		GPSCO::cloudptr Intersection_points_src; // 三平面交点
-		GPSCO::cloudptr Intersection_points_tgt; // 三平面交点
-
-		std::vector<Eigen::Matrix3f> Rs; // 候选的变换矩阵
-		std::vector<Eigen::Vector3f> Ts; // 候选的平移向量
-
 		float match_score; // Sum of matching scores for the three corresponding plane groups
 	};
 
-// 变换矩阵
+	// Information necessary to calculate the transformation matrix
 	class RT_Info
 	{
 	 public:
 		RT_Info();
 		~RT_Info();
 
-		//// 排序，从小到大
-		// bool operator<(const RT_Info& b) const {
-		//	return confidence < b.confidence;
-		// }
-
-//		/// \brief 排序，从大到小
-//		/// \param b
-//		/// \return
+		/// Confidence in descending order, Dmean in ascending order while "confidence == b.confidence"
+		/// \param b another transformation matrix
+		/// \return
 		bool
 		operator<(const RT_Info& b) const
 		{
 			if (confidence == b.confidence)
-				return plane_match_num > b.plane_match_num;
+				return Dmean < b.Dmean;
 			else
 				return confidence > b.confidence;
 		}
 
-		void Compute_RMS();
-
-//		bool
-//		operator<(const RT_Info& b) const
-//		{
-//			if (plane_match_num == b.plane_match_num)
-//				return confidence > b.confidence;
-//			else
-//				return plane_match_num > b.plane_match_num;
-//		}
+		void Compute_Dmean();
 
 	 public:
-		MatchGroup plane_pairs1;
-		MatchGroup plane_pairs2;
-		MatchGroup plane_pairs3;
+		MatchGroup plane_pairs1; // plane pairs in plane group 1
+		MatchGroup plane_pairs2; // plane pairs in plane group 2
+		MatchGroup plane_pairs3; // plane pairs in plane group 3
 
-		GPSCO::cloudptr Intersection_points_src; // 三平面交点
-		GPSCO::cloudptr Intersection_points_tgt; // 三平面交点
+		GPSCO::cloudptr Intersection_points_src; // Intersection of three planes
+		GPSCO::cloudptr Intersection_points_tgt; // Intersection of three planes
 
-		Eigen::Matrix4f rt;     // 变换矩阵
-		int plane_match_num; // 匹配的平面数目
-		float confidence;     // 置信度
-		float rms; // 平面交点间的rms
+		Eigen::Matrix4f rt; // transformation matrix
+		float confidence; // possibility
+		float Dmean; // Mean point pair Distance
 	};
 
 	namespace Registration
@@ -297,5 +276,14 @@ namespace GPSCO
 			const std::vector<GPSCO::Group_Three>& group_three_vector_src,
 			const std::vector<GPSCO::Group_Three>& group_three_vector_tgt,
 			Eigen::Matrix4f& final_rt);
+
+		/// Evaluation of the transformation matrix, The score is the proportional sum of the overlapping planes
+		/// \param planes_src
+		/// \param planes_tgt
+		/// \param rt_temp Transformation matrix to be evaluated
+		void Evaluate(
+			const std::vector<GPSCO::PLANE>& planes_src,
+			const std::vector<GPSCO::PLANE>& planes_tgt,
+			RT_Info& rt_temp);
 	}
 }

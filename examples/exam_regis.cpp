@@ -47,14 +47,10 @@ int main()
 	params.dist_thresh = 0.05;
 	if (GPSCO::Registration::Regis(cloud_src, cloud_tgt, params, RT))
 	{
-		spdlog::info("Point cloud registration is successful!!! The transformation matrix is");
-		return 0;
+		std::cout << "The transformation matrix is\n" << RT << std::endl;
 	}
-	else
-	{
-		spdlog::error("Point cloud registration is failure!!!");
-		return 0;
-	}
+
+	return 0;
 }
 
 

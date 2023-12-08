@@ -35,7 +35,7 @@ namespace GPSCO
 		bool
 		operator<(const PLANE& b) const
 		{
-			return points->size() > b.points->size();
+			return patches->size() > b.patches->size();
 		}
 
 		/// Calculate plane normal vector, centroid, coefficients
@@ -43,15 +43,23 @@ namespace GPSCO
 		void
 		ComputeProperties();
 
+		// Sampling the plane to a certain size
+		// in order to calculate the overlapping area of the two planes
+
+		// Divide the plane point cloud into several patches
+		void Segment(float size);
+
+		// Build kdtree for easy retrieval
+		void build();
+
 	 public:
 		cloudptr points;
+		cloudptr patches; // plane patches
+		pcl::KdTreeFLANN<pcl::PointXYZ> kdtree; // KDTree of plane patches
 		Eigen::Vector3f normal;
 		Eigen::Vector3f centroid;
 		std::vector<float> coefficients; // Ax+By+Cz+D=0
 	};
-
-	// The distance from point to plane
-	float distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const float& d);
 
 	// Hash
 	using Array3I = std::array<int, 3>;
@@ -62,4 +70,13 @@ namespace GPSCO
 			return (std::hash<int>()(rhs[0])) ^ (std::hash<int>()(rhs[1])) ^ (std::hash<int>()(rhs[2]));
 		}
 	};
+
+	// The distance from point to plane
+	float distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const float& d);
+
+	// The angle between two vectors, acute angle
+	float angleBetweenVectors(const Eigen::Vector3f& v1, const Eigen::Vector3f& v2);
+
+	// Calculate the distance from the point to the plane
+	float distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const double& d);
 }

@@ -2,34 +2,27 @@
 #include <unordered_map>
 #include <set>
 #include <chrono>
-#include <regex>
-#include <filesystem>
 #include <random>
-
-namespace fs = std::filesystem;
-
 // PCL
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
 #include <pcl/common/io.h>
+#include <pcl/common/common.h>
+#include <pcl/common/distances.h>
+#include <pcl/common/intersections.h>
 #include <pcl/registration/transformation_estimation_svd.h>
 #include <pcl/search/kdtree.h>
 #include <pcl/octree/octree.h>
 #include <pcl/filters/uniform_sampling.h>
-#include <pcl/common/distances.h>
-#include <pcl/common/common.h>
-#include <pcl/common/intersections.h>
-
+// Eigen
 #include <Eigen/Dense>
-
+// spdlog
 #include <spdlog/spdlog.h>
-
 // local
 #include "Common.h"
-#include "Registration.h"
-#include "util.h"
 #include "PLANE_Extraction.h"
+#include "Registration.h"
 
 namespace GPSCO
 {
@@ -94,11 +87,7 @@ namespace GPSCO
 		group_tgt_index2 = -1;
 		group_tgt_index3 = -1;
 
-		Intersection_points_src.reset(new GPSCO::cloud);
-		Intersection_points_tgt.reset(new GPSCO::cloud);
-
-		match_num = 0;
-		score = 0.0f;
+		match_score = 0.0f;
 	}
 
 	Group_Three_Pair::~Group_Three_Pair()
@@ -109,27 +98,26 @@ namespace GPSCO
 	{
 		Intersection_points_src.reset(new GPSCO::cloud);
 		Intersection_points_tgt.reset(new GPSCO::cloud);
-		plane_match_num = 0;
 		confidence = 0.0f;
-		rms = 0.0f;
+		Dmean = 0.0f;
 	}
 
 	RT_Info::~RT_Info()
 	{
 	}
 
-	void RT_Info::Compute_RMS()
+	void RT_Info::Compute_Dmean()
 	{
-		rms = 0.0f;
+		Dmean = 0.0f;
 		cloudptr trans_cloud(new cloud);
 		Intersection_points_src->width = Intersection_points_src->points.size();
 		Intersection_points_src->height = 1;
 		pcl::transformPointCloud(*Intersection_points_src, *trans_cloud, rt);
 		for (int i = 0; i < trans_cloud->points.size(); i++)
 		{
-			rms += sqrt(pcl::squaredEuclideanDistance(trans_cloud->points[i], Intersection_points_tgt->points[i]));
+			Dmean += sqrt(pcl::squaredEuclideanDistance(trans_cloud->points[i], Intersection_points_tgt->points[i]));
 		}
-		rms /= trans_cloud->size();
+		Dmean /= trans_cloud->size();
 	}
 
 	namespace Registration
@@ -189,7 +177,26 @@ namespace GPSCO
 			std::vector<std::vector<std::vector<MatchGroup>>> group_table; // The relationship table between plane groups
 			Compute_Group_Table(planes_src, planes_tgt, PlaneGroups_src, PlaneGroups_tgt, params.dist_thresh, group_table);
 
-			return true;
+			// Get candidate
+			float angle_min = 30;
+			float angle_max = 150;
+			std::vector<GPSCO::Group_Three> group_three_vector_src;
+			std::vector<GPSCO::Group_Three> group_three_vector_tgt;
+			Get_Group_Three(planes_src, PlaneGroups_src, angle_min, angle_max, group_three_vector_src);
+			Get_Group_Three(planes_tgt, PlaneGroups_tgt, angle_min, angle_max, group_three_vector_tgt);
+
+			// GPSCO determines the transformation matrix
+			if (Get_transformation_matrix(planes_src, planes_tgt, PlaneGroups_src, PlaneGroups_tgt,
+				group_table, group_three_vector_src, group_three_vector_tgt, RT))
+			{
+				spdlog::info("Transformation matrix obtained successfully.");
+				return true;
+			}
+			else
+			{
+				spdlog::info("Transformation Matrix obtained failed.");
+				return false;
+			}
 		}
 
 		bool Plane_Cluster(
@@ -1031,7 +1038,270 @@ namespace GPSCO
 			// Sorted by match score, highest to lowest
 			std::sort(group_three_pair_vec.begin(), group_three_pair_vec.end());
 
+			// Global Planar Structural Constraint Optimal(highest score)
+			std::vector<GPSCO::RT_Info> RT_vector;
+			for (int i = 0; i < group_three_pair_vec.size(); i++)
+			{
+				if (group_three_pair_vec[i].match_score == group_three_pair_vec[0].match_score)
+				{
+					int index1_src = group_three_pair_vec[i].group_src_index1;
+					int index1_tgt = group_three_pair_vec[i].group_tgt_index1;
+					for (int j = 0; j < group_table[index1_src][index1_tgt].size(); j++)
+					{
+						if (group_table[index1_src][index1_tgt][j].match_num == group_table[index1_src][index1_tgt][0].match_num)
+						{
+							int index2_src = group_three_pair_vec[i].group_src_index2;
+							int index2_tgt = group_three_pair_vec[i].group_tgt_index2;
+							for (int m = 0; m < group_table[index2_src][index2_tgt].size(); m++)
+							{
+								if (group_table[index2_src][index2_tgt][m].match_num == group_table[index2_src][index2_tgt][0].match_num)
+								{
+									int index3_src = group_three_pair_vec[i].group_src_index3;
+									int index3_tgt = group_three_pair_vec[i].group_tgt_index3;
+									for (int n = 0; n < group_table[index3_src][index3_tgt].size(); n++)
+									{
+										if (group_table[index3_src][index3_tgt][n].match_num == group_table[index3_src][index3_tgt][0].match_num)
+										{
+											RT_Info rt_info;
+											rt_info.plane_pairs1 = group_table[index1_src][index1_tgt][j];
+											rt_info.plane_pairs2 = group_table[index2_src][index2_tgt][m];
+											rt_info.plane_pairs3 = group_table[index3_src][index3_tgt][n];
+											RT_vector.push_back(rt_info);
+										}
+										else
+										{ break; }
+									}
+								}
+								else
+								{ break; }
+							}
+						}
+						else
+						{ break; }
+					}
+				}
+				else
+				{ break; }
+			}
+
+			if (RT_vector.empty())
+			{
+				spdlog::error("RT_vector is empty.");
+				return false;
+			}
+
+			// Verification
+			std::vector<Eigen::Matrix4f> rt_bucket; // Clustering for transformation matrices to avoid repeated validations
+			for (auto& rt_temp : RT_vector)
+			{
+				// Planar correspondences to point-pair correspondences
+				for (const auto& pair1 : rt_temp.plane_pairs1.planepairs)
+				{
+					for (const auto& pair2 : rt_temp.plane_pairs2.planepairs)
+					{
+						for (const auto& pair3 : rt_temp.plane_pairs3.planepairs)
+						{
+							Eigen::Vector3f inter_pt_src(0.0, 0.0, 0.0), inter_pt_tgt(0.0, 0.0, 0.0);
+							Eigen::Vector4f plane_a_src, plane_b_src, plane_c_src;
+							Eigen::Vector4f plane_a_tgt, plane_b_tgt, plane_c_tgt;
+							std::vector<Eigen::Vector3f> intersection_points_src; // Used for averaging
+							std::vector<Eigen::Vector3f> intersection_points_tgt; // Used for averaging
+							for (const auto& plane_a_index : PlaneGroups_src[rt_temp.plane_pairs1.group1_index][pair1.first])
+							{
+								plane_a_src << Planes_src[plane_a_index].coefficients[0],
+									Planes_src[plane_a_index].coefficients[1],
+									Planes_src[plane_a_index].coefficients[2],
+									Planes_src[plane_a_index].coefficients[3];
+								for (const auto& plane_b_index : PlaneGroups_src[rt_temp.plane_pairs2.group1_index][pair2.first])
+								{
+									plane_b_src << Planes_src[plane_b_index].coefficients[0],
+										Planes_src[plane_b_index].coefficients[1],
+										Planes_src[plane_b_index].coefficients[2],
+										Planes_src[plane_b_index].coefficients[3];
+									for (const auto& plane_c_index : PlaneGroups_src[rt_temp.plane_pairs3.group1_index][pair3.first])
+									{
+										plane_c_src << Planes_src[plane_c_index].coefficients[0],
+											Planes_src[plane_c_index].coefficients[1],
+											Planes_src[plane_c_index].coefficients[2],
+											Planes_src[plane_c_index].coefficients[3];
+
+										if (pcl::threePlanesIntersection(plane_a_src, plane_b_src, plane_c_src, inter_pt_src))
+										{
+											intersection_points_src.push_back(inter_pt_src);
+										}
+									}
+								}
+							}
+							for (const auto& plane_a_index : PlaneGroups_tgt[rt_temp.plane_pairs1.group2_index][pair1.second])
+							{
+								plane_a_tgt << Planes_tgt[plane_a_index].coefficients[0],
+									Planes_tgt[plane_a_index].coefficients[1],
+									Planes_tgt[plane_a_index].coefficients[2],
+									Planes_tgt[plane_a_index].coefficients[3];
+								for (const auto& plane_b_index : PlaneGroups_tgt[rt_temp.plane_pairs2.group2_index][pair2.second])
+								{
+									plane_b_tgt << Planes_tgt[plane_b_index].coefficients[0],
+										Planes_tgt[plane_b_index].coefficients[1],
+										Planes_tgt[plane_b_index].coefficients[2],
+										Planes_tgt[plane_b_index].coefficients[3];
+									for (const auto& plane_c_index : PlaneGroups_tgt[rt_temp.plane_pairs3.group2_index][pair3.second])
+									{
+										plane_c_tgt << Planes_tgt[plane_c_index].coefficients[0],
+											Planes_tgt[plane_c_index].coefficients[1],
+											Planes_tgt[plane_c_index].coefficients[2],
+											Planes_tgt[plane_c_index].coefficients[3];
+
+										if (pcl::threePlanesIntersection(plane_a_tgt, plane_b_tgt, plane_c_tgt, inter_pt_tgt))
+										{
+											intersection_points_tgt.push_back(inter_pt_tgt);
+										}
+									}
+								}
+							}
+							if (!intersection_points_src.empty() && !intersection_points_tgt.empty())
+							{
+								// Average
+								inter_pt_src.setZero();
+								for (int num = 0; num < intersection_points_src.size(); num++)
+								{
+									inter_pt_src += intersection_points_src[num];
+								}
+								inter_pt_src /= intersection_points_src.size();
+								rt_temp.Intersection_points_src->push_back(
+									pcl::PointXYZ(inter_pt_src[0], inter_pt_src[1], inter_pt_src[2]));
+
+								inter_pt_tgt.setZero();
+								for (int num = 0; num < intersection_points_tgt.size(); num++)
+								{
+									inter_pt_tgt += intersection_points_tgt[num];
+								}
+								inter_pt_tgt /= intersection_points_tgt.size();
+								rt_temp.Intersection_points_tgt->push_back(
+									pcl::PointXYZ(inter_pt_tgt[0], inter_pt_tgt[1], inter_pt_tgt[2]));
+							}
+						}
+					}
+				}
+
+				if (rt_temp.Intersection_points_src->size() != rt_temp.Intersection_points_tgt->size())
+				{
+					spdlog::error("Inconsistent number of match points.");
+					return false;
+				}
+				else if (rt_temp.Intersection_points_src->size() < 3)
+				{
+					// Insufficient number of point pairs,
+					// only matching planes can be applied to compute transformation matrices
+					// Two pairs of corresponding planes can determine the rotation matrix
+					// Three pairs of corresponding planes can uniquely determine a transformation matrix
+					spdlog::warn("Insufficient number of matching point pairs.");
+					return false;
+					// ...(Add more when needed, laughing)
+				}
+				else
+				{
+					// SVD
+					pcl::registration::TransformationEstimationSVD<pcl::PointXYZ, pcl::PointXYZ> SVD;
+					SVD.estimateRigidTransformation(
+						*rt_temp.Intersection_points_src,
+						*rt_temp.Intersection_points_tgt,
+						rt_temp.rt);
+
+					// Point-to-point average distance for constraints.
+					rt_temp.Compute_Dmean();
+					if (rt_temp.Dmean > 0.1)
+						continue;
+
+					// Avoiding repetitive transformation matrix calculations
+					bool IsCluster = false;
+					for (const auto& rt : rt_bucket)
+					{
+						Eigen::Matrix3f R = rt.block<3, 3>(0, 0);
+						Eigen::Vector3f T = rt.block<3, 1>(0, 3);
+
+						Eigen::AngleAxisf aaDiff(R.transpose() * rt_temp.rt.block<3, 3>(0, 0));
+						float angleDiff = aaDiff.angle();
+
+						// Convert radians to angles
+						float angleDiffDegrees = angleDiff * 180.0 / M_PI;
+
+						if (angleDiffDegrees < 5.0)
+						{
+							// Calculate the distance difference
+							if ((T - rt_temp.rt.block<3, 1>(0, 3)).norm() < 0.2)
+							{
+								IsCluster = true;
+								break;
+							}
+						}
+					}
+					if (IsCluster)
+						continue;
+					else
+						rt_bucket.push_back(rt_temp.rt);
+
+					// Evaluate, the proportional sum of the overlapping planes
+					Evaluate(Planes_src, Planes_tgt, rt_temp);
+				}
+			}
+
+			// The highest scored transformation matrix is the final result
+			std::sort(RT_vector.begin(), RT_vector.end());
+			final_rt = RT_vector[0].rt;
+
 			return true;
+		}
+
+		void Evaluate(
+			const std::vector<GPSCO::PLANE>& planes_src,
+			const std::vector<GPSCO::PLANE>& planes_tgt,
+			RT_Info& rt_temp)
+		{
+			float dist_plane = 0.05; // The distance at which two planes may overlap
+			float dist_pointpair = 0.3; // The maximum distance between point pairs that overlap
+			std::vector<int> pointIdxNKNSearch(1);
+			std::vector<float> pointNKNSquaredDistance(1);
+			for (const auto& plane_src : planes_src)
+			{
+				for (const auto& plane_tgt : planes_tgt)
+				{
+					auto normal_trans = rt_temp.rt.block<3, 3>(0, 0) * plane_src.normal;
+					auto centroid_trans = rt_temp.rt.block<3, 3>(0, 0) * plane_src.centroid + rt_temp.rt.block<3, 1>(0, 3);
+					// Determine if there is an overlap
+					auto angle = GPSCO::angleBetweenVectors(normal_trans, plane_tgt.normal);
+					if (angle < 2.0)
+					{
+						auto dist1_temp =
+							GPSCO::distancePointToPlane(centroid_trans, plane_tgt.normal, plane_tgt.coefficients[3]);
+						auto dist2_temp =
+							GPSCO::distancePointToPlane(plane_tgt.centroid, normal_trans, -normal_trans.dot(centroid_trans));
+						if ((dist1_temp + dist2_temp) / 2.0 < dist_plane)
+						{
+							GPSCO::cloudptr transformed_cloud(new GPSCO::cloud);
+							pcl::transformPointCloud(*plane_src.patches, *transformed_cloud, rt_temp.rt);
+							pcl::KdTreeFLANN<pcl::PointXYZ> kdtree;
+							kdtree.setInputCloud(transformed_cloud);
+
+							// Minimum distance between two plane point clouds
+							plane_tgt.kdtree.nearestKSearch(transformed_cloud->points[0], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+							kdtree.nearestKSearch(plane_tgt.patches->points[pointIdxNKNSearch[0]], 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+							if (pointNKNSquaredDistance[0] < dist_pointpair)
+							{
+								float overlap_ptnum = 0;
+								for (const auto& pt : transformed_cloud->points)
+								{
+									plane_tgt.kdtree.nearestKSearch(pt, 1, pointIdxNKNSearch, pointNKNSquaredDistance);
+									if (pointNKNSquaredDistance[0] < dist_pointpair)
+									{
+										overlap_ptnum++;
+									}
+								}
+								rt_temp.confidence += (2 * overlap_ptnum) / (plane_src.patches->points.size() + plane_tgt.patches->points.size());
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 }

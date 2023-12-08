@@ -1,7 +1,10 @@
-// pcl
-#include <pcl/common/impl/centroid.hpp>
+// system
+#include <algorithm>
 // EIGEN
 #include <Eigen/Eigenvalues>
+// pcl
+#include <pcl/common/centroid.h>
+#include <pcl/keypoints/uniform_sampling.h>
 // local
 #include "Common.h"
 
@@ -10,6 +13,7 @@ namespace GPSCO
 	PLANE::PLANE()
 	{
 		points.reset(new GPSCO::cloud);
+		patches.reset(new GPSCO::cloud);
 		normal.setZero();
 		centroid.setZero();
 		coefficients.clear();
@@ -22,11 +26,53 @@ namespace GPSCO
 	void
 	PLANE::ComputeProperties()
 	{
-		Eigen::Vector4f centroid_temp; // homogeneous coordinates
-		pcl::compute3DCentroid(*points, centroid_temp);
+//		// Approach 1
+//		Eigen::Vector4f centroid_temp; // homogeneous coordinates
+//		pcl::compute3DCentroid(*points, centroid_temp);
+//		// get centroid
+//		centroid = centroid_temp.head<3>();
 
-		// get centroid
-		centroid = centroid_temp.head<3>();
+		// Approach 2
+		// To avoid noise interference, the median is used instead of the mean Centroid
+		// Extract x, y, and z coordinates
+		std::vector<float> x_values, y_values, z_values;
+		for (const auto& point : points->points)
+		{
+			x_values.push_back(point.x);
+			y_values.push_back(point.y);
+			z_values.push_back(point.z);
+		}
+
+		// Sort coordinates
+		std::sort(x_values.begin(), x_values.end());
+		std::sort(y_values.begin(), y_values.end());
+		std::sort(z_values.begin(), z_values.end());
+
+		// Calculate medians
+		float x_median, y_median, z_median;
+
+		size_t num_points = points->points.size();
+		if (num_points % 2 == 0)
+		{
+			size_t mid_idx = num_points / 2;
+			x_median = (x_values[mid_idx - 1] + x_values[mid_idx]) / 2;
+			y_median = (y_values[mid_idx - 1] + y_values[mid_idx]) / 2;
+			z_median = (z_values[mid_idx - 1] + z_values[mid_idx]) / 2;
+		}
+		else
+		{
+			size_t mid_idx = num_points / 2;
+			x_median = x_values[mid_idx];
+			y_median = y_values[mid_idx];
+			z_median = z_values[mid_idx];
+		}
+
+		// Get centroid
+		centroid[0] = x_median;
+		centroid[1] = y_median;
+		centroid[2] = z_median;
+
+		Eigen::Vector4f centroid_temp(centroid[0], centroid[1], centroid[2], 1.0); // homogeneous coordinates
 
 		// Calculate the 3x3 covariance matrix
 		Eigen::Matrix3f covariance_matrix;
@@ -48,8 +94,54 @@ namespace GPSCO
 		coefficients.push_back(-normal.dot(centroid));
 	}
 
+	void
+	PLANE::Segment(float size)
+	{
+		pcl::UniformSampling<pcl::PointXYZ> us;
+		us.setInputCloud(points);
+		us.setRadiusSearch(size);
+		us.filter(*patches);
+	}
+
+	void
+	PLANE::build()
+	{
+		kdtree.setInputCloud(patches);
+	}
+
 	float
 	distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const float& d)
+	{
+		float distance = (point.dot(planeNormal) + d) / planeNormal.norm();
+		return std::fabs(distance);
+	}
+
+	float
+	angleBetweenVectors(const Eigen::Vector3f& v1, const Eigen::Vector3f& v2)
+	{
+		float dot = v1.dot(v2);
+		float v1_norm = v1.norm();
+		float v2_norm = v2.norm();
+		double cos_angle = dot / (v1_norm * v2_norm);
+
+		// Handling of results outside the range [-1, 1] due to numerical errors
+		// std::max, std::min must be "double"
+		cos_angle = std::max(-1.0, std::min(1.0, cos_angle));
+
+		float radian_angle = std::acos(cos_angle);
+		float degree_angle = radian_angle * 180.0 / M_PI;
+
+		// Ensure that the angle is less than 90 degrees
+		if (degree_angle > 90.0)
+		{
+			degree_angle = 180.0 - degree_angle;
+		}
+
+		return degree_angle;
+	}
+
+	float
+	distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const double& d)
 	{
 		float distance = (point.dot(planeNormal) + d) / planeNormal.norm();
 		return std::fabs(distance);

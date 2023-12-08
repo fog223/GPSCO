@@ -69,6 +69,8 @@ namespace GPSCO
 						plane.points->push_back(cloud->points[idx]);
 					}
 					plane.ComputeProperties();
+					plane.Segment(0.2);
+					plane.build();
 					outPlanes.push_back(plane);
 				}
 				spdlog::info("The number of planes extracted is {}.", outPlanes.size());
