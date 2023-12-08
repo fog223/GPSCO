@@ -1,20 +1,16 @@
 // system
 #include <unordered_map>
 #include <set>
-#include <chrono>
 #include <random>
 // PCL
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
 #include <pcl/io/ply_io.h>
-#include <pcl/common/io.h>
 #include <pcl/common/common.h>
 #include <pcl/common/distances.h>
 #include <pcl/common/intersections.h>
 #include <pcl/registration/transformation_estimation_svd.h>
-#include <pcl/search/kdtree.h>
 #include <pcl/octree/octree.h>
-#include <pcl/filters/uniform_sampling.h>
 // Eigen
 #include <Eigen/Dense>
 // spdlog
@@ -155,6 +151,10 @@ namespace GPSCO
 				return false;
 			}
 
+			// large to small
+			std::sort(planes_src.begin(), planes_src.end());
+			std::sort(planes_tgt.begin(), planes_tgt.end());
+
 			// Planar clustering
 			std::vector<std::vector<std::vector<int>>> PlaneGroups_src;
 			std::vector<std::vector<std::vector<int>>> PlaneGroups_tgt;
@@ -182,21 +182,21 @@ namespace GPSCO
 			float angle_max = 150;
 			std::vector<GPSCO::Group_Three> group_three_vector_src;
 			std::vector<GPSCO::Group_Three> group_three_vector_tgt;
-			Get_Group_Three(planes_src, PlaneGroups_src, angle_min, angle_max, group_three_vector_src);
-			Get_Group_Three(planes_tgt, PlaneGroups_tgt, angle_min, angle_max, group_three_vector_tgt);
 
-			// GPSCO determines the transformation matrix
-			if (Get_transformation_matrix(planes_src, planes_tgt, PlaneGroups_src, PlaneGroups_tgt,
-				group_table, group_three_vector_src, group_three_vector_tgt, RT))
+			if (Get_Group_Three(planes_src, PlaneGroups_src, angle_min, angle_max, group_three_vector_src)
+				&& Get_Group_Three(planes_tgt, PlaneGroups_tgt, angle_min, angle_max, group_three_vector_tgt))
 			{
-				spdlog::info("Transformation matrix obtained successfully.");
-				return true;
+				// GPSCO determines the transformation matrix
+				if (Get_transformation_matrix(planes_src, planes_tgt, PlaneGroups_src, PlaneGroups_tgt,
+					group_table, group_three_vector_src, group_three_vector_tgt, RT))
+				{
+					spdlog::info("Transformation matrix obtained successfully.");
+					return true;
+				}
 			}
-			else
-			{
-				spdlog::info("Transformation Matrix obtained failed.");
-				return false;
-			}
+
+			spdlog::error("Transformation Matrix obtained failed.");
+			return false;
 		}
 
 		bool Plane_Cluster(
@@ -210,7 +210,6 @@ namespace GPSCO
 				spdlog::info("The number of planes to be clustered is empty.");
 				return false;
 			}
-
 			else
 			{
 				// Cluster parallel planes

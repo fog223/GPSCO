@@ -39,7 +39,7 @@ int main()
 
 	Eigen::Matrix4f RT;
 	GPSCO::Params params;
-	params.min_support_points = 1000;
+	params.min_support_points = 800;
 	params.SmoothnessThreshold = 2.0;
 	params.CurvatureThreshold = 1.0;
 	params.parallel_thresh = 5.0;
