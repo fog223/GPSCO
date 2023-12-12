@@ -7,14 +7,9 @@ target_link_libraries(exam_plane_extraction PRIVATE ${PCL_LIBRARIES} spdlog::spd
 add_executable(exam_regis exam_regis.cpp)
 target_link_libraries(exam_regis PRIVATE ${PCL_LIBRARIES} spdlog::spdlog gpsco)
 
-#add_executable(exam_registration exam_registration.cpp)
-#target_link_libraries(exam_registration PRIVATE gpsco)
-#
-#add_executable(exam_transmatrix exam_transmatrix.cpp)
-#target_link_libraries(exam_transmatrix PRIVATE ${PCL_LIBRARIES} spdlog::spdlog gpsco)
-#
-add_executable(exam_align exam_align.cpp)
-target_link_libraries(exam_align PRIVATE ${PCL_LIBRARIES} spdlog::spdlog)
+add_executable(exam_accuracy exam_accuracy.cpp)
+target_link_libraries(exam_accuracy PRIVATE ${PCL_LIBRARIES} spdlog::spdlog gpsco)
 
 add_executable(exam_overlap exam_overlap.cpp)
 target_link_libraries(exam_overlap PRIVATE ${PCL_LIBRARIES} spdlog::spdlog)
+

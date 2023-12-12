@@ -447,7 +447,7 @@ namespace GPSCO
 					}
 				}
 
-				spdlog::info("The relationship table between plane groups is successfully obtained.");
+//				spdlog::info("The relationship table between plane groups is successfully obtained.");
 				return true;
 			}
 		}
