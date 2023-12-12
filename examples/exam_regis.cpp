@@ -18,10 +18,8 @@
 
 int main()
 {
-//	std::string file_src = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
-//	std::string file_tgt = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_546_50w.ply";
-	std::string file_src = "F:\\Data\\Data\\Target_Ball\\Data\\Cloud_852_3DHoPD.ply";
-	std::string file_tgt = "F:\\Data\\Data\\Target_Ball\\Data\\Cloud_853_3DHoPD.ply";
+	std::string file_src = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
+	std::string file_tgt = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_546_50w.ply";
 	GPSCO::cloudptr cloud_src(new GPSCO::cloud);
 	GPSCO::cloudptr cloud_tgt(new GPSCO::cloud);
 
