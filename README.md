@@ -10,31 +10,21 @@
 
 #### Requirement
 
-    * cmake(>=3.20)
-    * PCL(>=1.12)
+    * cmake(>=3.10)
+    * PCL(>=1.10)
     * spdlog(1.12.0)
 
 #### Option 1(shell)
-
-* On Linux
 
  ```
     cd ${GPSCO_DIR}
     mkdir build
     cd build
     cmake ..
-    make
-```
-
-* On Windows with Microsoft Visual Studio, use the x64 Native Tools Command Prompt for VS XXXX, then
-
-```
-    cd ${GPSCO_DIR}
-    mkdir build
-    cd build
-    cmake -G "NMake Makefiles" ..
-    nmake
-```
+    make -j14
+ ```
+*Note:* If the number of threads on your computer is less than `16`, 
+modify `make -j14` to match the number of threads on your computer, such as `make -j4`.
 
 #### Option 2(IDE)
 
@@ -47,7 +37,7 @@ Use any IDE that can directly handle CMakeLists files to open the CMakeLists.txt
 * register a 'source' point cloud to a 'target' point cloud.
 
 ```
-    ./example_regis  room_target.ply  room_source.ply  result.txt
+    ./examples/example_regis source.ply target.ply result.txt
 ```
 
 ---
@@ -56,7 +46,8 @@ Use any IDE that can directly handle CMakeLists files to open the CMakeLists.txt
 
 HS([Download Link1](https://drive.google.com/drive/folders/1OFHm4iSt0wIle2MeTROb93jYmVoc37mR?usp=sharing) And [Download Link2](https://pan.baidu.com/s/14ZvvR6qfYkQkbzvjEzspjg?pwd=lwcl)): Real-world Scans with Repetitive Structures. This dataset is part of the GPSCO work.
 
-*Note:*
+*Note:* The HS dataset was created to complement the open source dataset in terms of repetitive structure. 
+The dataset includes raw scans, ground truth, and point cloud overlap.
 
 ### Acknowledgments
 
