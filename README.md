@@ -39,7 +39,7 @@ Use any IDE that can directly handle CMakeLists files to open the CMakeLists.txt
 * register a 'source' point cloud to a 'target' point cloud.
 
 ```
-    ./examples/example_regis source.ply target.ply result.txt
+    ./examples/exam_regis source.ply target.ply result.txt
 ```
 
 ---
