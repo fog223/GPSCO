@@ -78,7 +78,7 @@ namespace GPSCO
 			}
 		}
 
-		bool Export_txt(
+		bool Export_plane(
 			std::vector<GPSCO::PLANE>& Planes,
 			std::string outpath)
 		{

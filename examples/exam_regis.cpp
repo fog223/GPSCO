@@ -18,8 +18,8 @@
 
 int main()
 {
-	std::string file_src = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
-	std::string file_tgt = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_546_50w.ply";
+	std::string file_src = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\1_sampled.ply";
+	std::string file_tgt = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\2_sampled.ply";
 	GPSCO::cloudptr cloud_src(new GPSCO::cloud);
 	GPSCO::cloudptr cloud_tgt(new GPSCO::cloud);
 
@@ -37,7 +37,7 @@ int main()
 
 	Eigen::Matrix4f RT;
 	GPSCO::Params params;
-	params.min_support_points = 800;
+	params.min_support_points = 900;
 	params.SmoothnessThreshold = 2.0;
 	params.CurvatureThreshold = 1.0;
 	params.parallel_thresh = 5.0;

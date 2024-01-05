@@ -25,7 +25,7 @@ int main()
 {
 	// Load point cloud
 	std::vector<std::string> files_cloud;
-	for (const auto& entry : fs::directory_iterator("F:\\Benchmark\\HS_2\\2-AlignedPointCloud"))
+	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\2-AlignedPointCloud"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -49,7 +49,7 @@ int main()
 
 	// Determine which two stations need to be registered with each other.
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator("F:\\Benchmark\\HS_2\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")
@@ -84,11 +84,12 @@ int main()
 	// compute overlap(IoU)
 	spdlog::info("Start overlap calculation");
 
-	std::ofstream outfile("F:\\Benchmark\\HS_2\\overlap.txt");
-	float dist_thresh = 0.03;
+	std::ofstream outfile("D:\\Benchmark_HS\\HS_1\\overlap.txt");
+	float dist_thresh = 0.02;
 	std::vector<int> pointIdxNKNSearch(1);
 	std::vector<float> pointNKNSquaredDistance(1);
 	int process = 0;
+	float overlap_avg = 0.0f;
 	for (const auto& pair : pair_regis_idx)
 	{
 		process++;
@@ -103,12 +104,15 @@ int main()
 				num_overlap++;
 			}
 		}
-		auto overlap = num_overlap / (float(cloud_all[pair.first]->size() + cloud_all[pair.second]->size()) - num_overlap);
-		outfile << pair.first + 1 << ".ply and " << pair.second + 1 << ".ply overlap: " <<
+		auto overlap = (2 * num_overlap) / float(cloud_all[pair.first]->size() + cloud_all[pair.second]->size());
+		outfile << pair.first + 1 << "_sampled.ply and " << pair.second + 1 << "_sampled.ply overlap: " <<
 				std::fixed << std::setprecision(3) << overlap << std::endl;
+		overlap_avg += overlap;
 	}
 	outfile.close();
 
+	overlap_avg /= pair_regis_idx.size();
+	spdlog::info("The average overlap between point clouds is: {}.", overlap_avg);
 	spdlog::info("Overlap calculation complete!");
 
 	return 0;

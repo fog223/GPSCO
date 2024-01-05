@@ -40,7 +40,7 @@ namespace GPSCO
 		/// \param Planes Plane to be exported
 		/// \param outpath File Save Path
 		/// \return .txt
-		bool Export_txt(
+		bool Export_plane(
 			std::vector<GPSCO::PLANE>& Planes,
 			std::string outpath);
 	}

@@ -26,15 +26,15 @@ namespace fs = std::filesystem;
 int main()
 {
 	GPSCO::Params params;
-	params.min_support_points = 800;
+	params.min_support_points = 1000;
 	params.SmoothnessThreshold = 2.0;
 	params.CurvatureThreshold = 1.0;
 	params.parallel_thresh = 5.0;
 	params.coplanar_thresh = 2.0;
-	params.dist_thresh = 0.1;
+	params.dist_thresh = 0.05;
 
 	std::vector<std::string> files_path;
-	for (const auto& entry : fs::directory_iterator("F:\\Benchmark\\HS_2\\1-RawPointCloud"))
+	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\1-RawPointCloud"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -134,7 +134,7 @@ int main()
 
 	// load GroundTruth
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator("F:\\Benchmark\\HS_2\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")

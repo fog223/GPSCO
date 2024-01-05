@@ -18,7 +18,7 @@
 
 int main()
 {
-	std::string file = "F:\\Benchmark\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
+	std::string file = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
 	GPSCO::cloudptr cloud(new GPSCO::cloud);
 
 	if (pcl::io::loadPLYFile<pcl::PointXYZ>(file, *cloud) == -1)
@@ -38,7 +38,7 @@ int main()
 	if(GPSCO::PLANE_Extraction::PLANE_Tetect_RegionGrow(
 		cloud, min_support_points, SmoothnessThreshold, CurvatureThreshold, outPlanes))
 	{
-		GPSCO::PLANE_Extraction::Export_txt(outPlanes,"D:\\Code\\CLion\\GPSCO\\results\\");
+		GPSCO::PLANE_Extraction::Export_plane(outPlanes,"D:\\Code\\CLion\\GPSCO\\results\\");
 	}
 
 	return 0;
