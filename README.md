@@ -10,9 +10,11 @@
 
 #### Requirement
 
-    * cmake(>=3.10)
-    * PCL(>=1.10)
-    * spdlog(1.12.0)
+ ```
+    cmake(>=3.16)
+    PCL(>=1.10)
+    spdlog(1.12.0)
+ ```
 
 #### Option 1(shell)
 

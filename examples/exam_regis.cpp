@@ -1,4 +1,4 @@
-/**
+﻿/**
  *  \file   exam_regis.cpp
  *  \brief  Registration between two stations
  *  \author fog
@@ -16,15 +16,16 @@
 // local
 #include "registration.h"
 
-int main()
+int main(int argc, char** argv)
 {
-	std::string file_src = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\1_sampled.ply";
-	std::string file_tgt = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\2_sampled.ply";
-	GPSCO::cloudptr cloud_src(new GPSCO::cloud);
-	GPSCO::cloudptr cloud_tgt(new GPSCO::cloud);
+	if (argc != 4)
+		spdlog::error("Parameter input error!");
 
-	if (pcl::io::loadPLYFile<pcl::PointXYZ>(file_src, *cloud_src) == -1 ||
-		pcl::io::loadPLYFile<pcl::PointXYZ>(file_tgt, *cloud_tgt) == -1)
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_src(new pcl::PointCloud<pcl::PointXYZ>);
+	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_tgt(new pcl::PointCloud<pcl::PointXYZ>);
+
+	if (pcl::io::loadPLYFile<pcl::PointXYZ>(argv[1], *cloud_src) == -1 ||
+		pcl::io::loadPLYFile<pcl::PointXYZ>(argv[2], *cloud_tgt) == -1)
 	{
 		spdlog::error("Tata load failure!");
 		return 0;
@@ -45,7 +46,11 @@ int main()
 	params.dist_thresh = 0.05;
 	if (GPSCO::Registration::Regis(cloud_src, cloud_tgt, params, RT))
 	{
-		std::cout << "The transformation matrix is\n" << RT << std::endl;
+		std::ofstream outfile(argv[3]);
+		outfile << RT << std::endl;
+		outfile.close();
+
+		spdlog::info("Registration complete.");
 	}
 
 	return 0;

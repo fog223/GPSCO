@@ -23,7 +23,7 @@
 
 namespace fs = std::filesystem;
 
-int main()
+int main(int argc, char **argv)
 {
 	GPSCO::Params params;
 	params.min_support_points = 1000;

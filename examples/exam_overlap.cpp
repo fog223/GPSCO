@@ -21,7 +21,7 @@
 
 namespace fs = std::filesystem;
 
-int main()
+int main(int argc, char **argv)
 {
 	// Load point cloud
 	std::vector<std::string> files_cloud;
