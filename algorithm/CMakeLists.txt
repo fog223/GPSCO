@@ -1,6 +1,5 @@
-cmake_minimum_required(VERSION 3.20)
-
-find_package(PCL CONFIG REQUIRED)
+find_package(Eigen3 CONFIG REQUIRED)
+find_package(PCL 1.10 CONFIG REQUIRED)
 find_package(spdlog CONFIG REQUIRED)
 
 FILE(GLOB INCLUDE "./include/*.h")
@@ -9,22 +8,15 @@ FILE(GLOB SRC "./src/*.cpp")
 #STATIC library
 set(LIB_NAME "gpsco")
 add_library(${LIB_NAME} STATIC)
-target_include_directories(${LIB_NAME} PUBLIC ./include)
 target_sources(${LIB_NAME}
         PUBLIC
-        ./include/common.h
-        ./include/plane_extraction.h
-        ./include/registration.h
+        ${INCLUDE}
         PRIVATE
-        ./src/common.cpp
-        ./src/plane_extraction.cpp
-        ./src/registration.cpp)
+        ${SRC})
 
-# link PCL
-target_link_libraries(${LIB_NAME} PRIVATE ${PCL_LIBRARIES})
-
-# link spdlog
-target_link_libraries(${LIB_NAME} PRIVATE spdlog::spdlog)
+target_include_directories(${LIB_NAME} PUBLIC ./include)
+# link Eigen3 PCL and spdlog
+target_link_libraries(${LIB_NAME} PRIVATE ${PCL_LIBRARIES} spdlog::spdlog)
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     target_compile_options(${LIB_NAME} PRIVATE /bigobj)

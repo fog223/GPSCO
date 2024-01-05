@@ -16,9 +16,9 @@
 // spdlog
 #include <spdlog/spdlog.h>
 // local
-#include "Common.h"
-#include "PLANE_Extraction.h"
-#include "Registration.h"
+#include "common.h"
+#include "plane_extraction.h"
+#include "registration.h"
 
 namespace GPSCO
 {

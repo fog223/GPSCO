@@ -6,7 +6,7 @@
 #include <pcl/common/centroid.h>
 #include <pcl/keypoints/uniform_sampling.h>
 // local
-#include "Common.h"
+#include "common.h"
 
 namespace GPSCO
 {

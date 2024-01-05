@@ -44,9 +44,9 @@ Use any IDE that can directly handle CMakeLists files to open the CMakeLists.txt
 
 ### Usage
 
-* On Linux
+* register a 'source' point cloud to a 'target' point cloud.
 
- ```
+```
     ./example_regis  room_target.ply  room_source.ply  result.txt
 ```
 
