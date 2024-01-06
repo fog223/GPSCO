@@ -19,7 +19,10 @@
 int main(int argc, char** argv)
 {
 	if (argc != 4)
+	{
 		spdlog::error("Parameter input error!");
+		return -1;
+	}
 
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_src(new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_tgt(new pcl::PointCloud<pcl::PointXYZ>);

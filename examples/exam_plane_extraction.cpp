@@ -18,7 +18,7 @@
 
 int main(int argc, char **argv)
 {
-	std::string file = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud\\Scan_545_33w.ply";
+	std::string file = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\1_sampled.ply";
 	GPSCO::cloudptr cloud(new GPSCO::cloud);
 
 	if (pcl::io::loadPLYFile<pcl::PointXYZ>(file, *cloud) == -1)
