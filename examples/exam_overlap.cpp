@@ -21,11 +21,33 @@
 
 namespace fs = std::filesystem;
 
-int main(int argc, char **argv)
+// Custom comparison function to sort based on numeric values in file names
+bool numericStringCompare(const std::string& a, const std::string& b) {
+	// Extract file names from full paths
+	std::string fileNameA = a.substr(a.find_last_of("/\\") + 1);
+	std::string fileNameB = b.substr(b.find_last_of("/\\") + 1);
+
+	// Extract numeric part from file names
+	int numA = std::stoi(fileNameA);
+	int numB = std::stoi(fileNameB);
+
+	// Compare using numeric values
+	return numA < numB;
+}
+
+int main(int argc, char** argv)
 {
+	if (argc != 3)
+	{
+		spdlog::error("Parameter input error!");
+		return -1;
+	}
+
+	std::string root_dir = argv[1];
+
 	// Load point cloud
 	std::vector<std::string> files_cloud;
-	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\2-AlignedPointCloud"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "\\2-AlignedPointCloud"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -33,6 +55,10 @@ int main(int argc, char **argv)
 			files_cloud.push_back(filePath.string());
 		}
 	}
+
+	// Sort by file name
+	std::sort(files_cloud.begin(), files_cloud.end(), numericStringCompare);
+
 	std::vector<pcl::PointCloud<pcl::PointXYZ>::Ptr> cloud_all;
 	std::vector<pcl::KdTreeFLANN<pcl::PointXYZ>::Ptr> kdtree_all;
 	for (const auto& path : files_cloud)
@@ -49,7 +75,7 @@ int main(int argc, char **argv)
 
 	// Determine which two stations need to be registered with each other.
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "\\3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")
@@ -84,7 +110,7 @@ int main(int argc, char **argv)
 	// compute overlap(IoU)
 	spdlog::info("Start overlap calculation");
 
-	std::ofstream outfile("D:\\Benchmark_HS\\HS_1\\overlap.txt");
+	std::ofstream outfile(argv[2]);
 	float dist_thresh = 0.02;
 	std::vector<int> pointIdxNKNSearch(1);
 	std::vector<float> pointNKNSquaredDistance(1);

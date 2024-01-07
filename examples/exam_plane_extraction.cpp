@@ -16,29 +16,35 @@
 // local
 #include "plane_extraction.h"
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-	std::string file = "D:\\Benchmark_HS\\HS_1\\1-RawPointCloud-Sampled\\1_sampled.ply";
+	if (argc != 2 && argc != 3)
+	{
+		spdlog::error("Parameter input error!");
+		return -1;
+	}
+
 	GPSCO::cloudptr cloud(new GPSCO::cloud);
 
-	if (pcl::io::loadPLYFile<pcl::PointXYZ>(file, *cloud) == -1)
+	if (pcl::io::loadPLYFile<pcl::PointXYZ>(argv[1], *cloud) == -1)
 	{
 		spdlog::error("{} load failure!");
 		return 0;
 	}
 	else
 	{
-		spdlog::info("{} load success! the num of the points is {}", file, cloud->size());
+		spdlog::info("{} load success! the num of the points is {}", argv[1], cloud->size());
 	}
 
 	int min_support_points = 1000;
 	float SmoothnessThreshold = 2.0;
 	float CurvatureThreshold = 1.0;
 	std::vector<GPSCO::PLANE> outPlanes;
-	if(GPSCO::PLANE_Extraction::PLANE_Tetect_RegionGrow(
+	if (GPSCO::PLANE_Extraction::PLANE_Tetect_RegionGrow(
 		cloud, min_support_points, SmoothnessThreshold, CurvatureThreshold, outPlanes))
 	{
-		GPSCO::PLANE_Extraction::Export_plane(outPlanes,"D:\\Code\\CLion\\GPSCO\\results\\");
+		if (argc == 3)
+			GPSCO::PLANE_Extraction::Export_plane(outPlanes, argv[2]);
 	}
 
 	return 0;

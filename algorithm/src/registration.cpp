@@ -170,12 +170,12 @@ namespace GPSCO
 			}
 
 			// Export Plane, Plane Groups or Plane Clusters
-			GPSCO::PLANE_Extraction::Export_plane(planes_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
-			GPSCO::PLANE_Extraction::Export_plane(planes_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
-			Export_groups(planes_src, PlaneGroups_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
-			Export_groups(planes_tgt, PlaneGroups_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
-			Export_cluster(planes_src, PlaneGroups_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
-			Export_cluster(planes_tgt, PlaneGroups_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
+//			GPSCO::PLANE_Extraction::Export_plane(planes_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
+//			GPSCO::PLANE_Extraction::Export_plane(planes_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
+//			Export_groups(planes_src, PlaneGroups_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
+//			Export_groups(planes_tgt, PlaneGroups_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
+//			Export_cluster(planes_src, PlaneGroups_src, "D:\\Code\\CLion\\GPSCO\\results\\src_");
+//			Export_cluster(planes_tgt, PlaneGroups_tgt, "D:\\Code\\CLion\\GPSCO\\results\\tgt_");
 
 			// Initial match based moving alignment
 			std::vector<std::vector<std::vector<MatchGroup>>> group_table; // The relationship table between plane groups

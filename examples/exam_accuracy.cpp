@@ -23,8 +23,30 @@
 
 namespace fs = std::filesystem;
 
-int main(int argc, char **argv)
+// Custom comparison function to sort based on numeric values in file names
+bool numericStringCompare(const std::string& a, const std::string& b) {
+	// Extract file names from full paths
+	std::string fileNameA = a.substr(a.find_last_of("/\\") + 1);
+	std::string fileNameB = b.substr(b.find_last_of("/\\") + 1);
+
+	// Extract numeric part from file names
+	int numA = std::stoi(fileNameA);
+	int numB = std::stoi(fileNameB);
+
+	// Compare using numeric values
+	return numA < numB;
+}
+
+int main(int argc, char** argv)
 {
+	if (argc != 2 && argc != 3)
+	{
+		spdlog::error("Parameter input error!");
+		return -1;
+	}
+
+	std::string root_dir = argv[1];
+
 	GPSCO::Params params;
 	params.min_support_points = 1000;
 	params.SmoothnessThreshold = 2.0;
@@ -34,7 +56,7 @@ int main(int argc, char **argv)
 	params.dist_thresh = 0.05;
 
 	std::vector<std::string> files_path;
-	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\1-RawPointCloud"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "\\1-RawPointCloud-Sampled"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -44,7 +66,7 @@ int main(int argc, char **argv)
 	}
 
 	// Sort by file name
-	std::sort(files_path.begin(), files_path.end());
+	std::sort(files_path.begin(), files_path.end(), numericStringCompare);
 
 	// starting moment
 	auto time_begin = clock();
@@ -134,7 +156,7 @@ int main(int argc, char **argv)
 
 	// load GroundTruth
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator("D:\\Benchmark_HS\\HS_1\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "\\3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")
@@ -206,12 +228,14 @@ int main(int argc, char **argv)
 				RTs.push_back(rt);
 
 				// Export the transformation matrix
-				std::ofstream outfile;
-				std::string path = "D:\\Code\\CLion\\GPSCO\\results\\RT\\gpsco"
-					+ std::to_string(pair.first) + "_" + std::to_string(pair.second) + ".txt";
-				outfile.open(path);
-				outfile << rt << std::endl;
-				outfile.close();
+				if (argc == 3)
+				{
+					std::ofstream outfile;
+					std::string path = std::string(argv[2]) + "\\" + std::to_string(pair.first) + "_" + std::to_string(pair.second) + ".txt";
+					outfile.open(path);
+					outfile << rt << std::endl;
+					outfile.close();
+				}
 			}
 		}
 	}
@@ -277,7 +301,7 @@ int main(int argc, char **argv)
 
 	auto time_end = clock();
 	auto Time = (double)(time_end - time_begin) / CLOCKS_PER_SEC;
-	Time += (2 * pair_regis_idx.size() - files_path.size()) * (( time_plane_extra + time_plane_cluster) / float(files_path.size()));
+	Time += (2 * pair_regis_idx.size() - files_path.size()) * ((time_plane_extra + time_plane_cluster) / float(files_path.size()));
 	Time /= pair_regis_idx.size();
 	spdlog::info("Time: {}.", Time);
 
