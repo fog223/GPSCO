@@ -47,7 +47,7 @@ int main(int argc, char** argv)
 
 	// Load point cloud
 	std::vector<std::string> files_cloud;
-	for (const auto& entry : fs::directory_iterator(root_dir + "\\2-AlignedPointCloud"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "/2-AlignedPointCloud"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -75,7 +75,7 @@ int main(int argc, char** argv)
 
 	// Determine which two stations need to be registered with each other.
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator(root_dir + "\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "/3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")

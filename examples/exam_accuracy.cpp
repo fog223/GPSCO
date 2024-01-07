@@ -56,7 +56,7 @@ int main(int argc, char** argv)
 	params.dist_thresh = 0.05;
 
 	std::vector<std::string> files_path;
-	for (const auto& entry : fs::directory_iterator(root_dir + "\\1-RawPointCloud-Sampled"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "/1-RawPointCloud-Sampled"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".ply")
@@ -156,7 +156,7 @@ int main(int argc, char** argv)
 
 	// load GroundTruth
 	std::vector<std::string> files_transmatrix;
-	for (const auto& entry : fs::directory_iterator(root_dir + "\\3-GroundTruth"))
+	for (const auto& entry : fs::directory_iterator(root_dir + "/3-GroundTruth"))
 	{
 		const fs::path& filePath = entry.path();
 		if (fs::is_regular_file(filePath) && filePath.extension() == ".txt")
@@ -231,7 +231,7 @@ int main(int argc, char** argv)
 				if (argc == 3)
 				{
 					std::ofstream outfile;
-					std::string path = std::string(argv[2]) + "\\" + std::to_string(pair.first) + "_" + std::to_string(pair.second) + ".txt";
+					std::string path = std::string(argv[2]) + "/" + std::to_string(pair.first) + "_" + std::to_string(pair.second) + ".txt";
 					outfile.open(path);
 					outfile << rt << std::endl;
 					outfile.close();
