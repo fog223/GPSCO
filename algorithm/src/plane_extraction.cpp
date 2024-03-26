@@ -151,7 +151,7 @@ namespace GPSCO
 					auto green_ = (rgb >> 8) & 0xff;
 					auto blue_ = rgb & 0xff;
 
-					std::string file = outpath + "/p" + std::to_string(i + 1) + ".txt";
+					std::string file = outpath + std::to_string(i) + ".txt";
 					outfile.open(file);
 					for (const auto& pt : Planes[i].points->points)
 					{
