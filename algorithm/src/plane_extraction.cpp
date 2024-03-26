@@ -21,8 +21,10 @@ namespace GPSCO
 		bool PLANE_Tetect_RegionGrow(
 			cloudptr cloud,
 			int min_support_points,
+			int max_plane_num,
 			float SmoothnessThreshold,
 			float CurvatureThreshold,
+			float SegSize,
 			std::vector<GPSCO::PLANE>& outPlanes)
 		{
 			if (cloud->empty())
@@ -95,7 +97,11 @@ namespace GPSCO
 			spdlog::info("Region growing in progress...");
 			pcl::RegionGrowing<pcl::PointXYZ, pcl::Normal> rg;
 			std::vector<pcl::PointIndices> clusters;
-			rg.setMinClusterSize(min_support_points);
+			// Number of points constraint or number of planes constraint
+			if (max_plane_num != 0)
+				rg.setMinClusterSize(50);
+			else
+				rg.setMinClusterSize(min_support_points);
 			rg.setMaxClusterSize(1000000);
 			rg.setSearchMethod(tree);
 			rg.setNumberOfNeighbours(16);
@@ -114,18 +120,26 @@ namespace GPSCO
 			}
 			else
 			{
-				for (const auto& cluster : clusters)
+				for (int i = 0; i < clusters.size(); i++)
 				{
 					GPSCO::PLANE plane;
-					for (const auto& idx : cluster.indices)
+					for (const auto& idx : clusters[i].indices)
 					{
 						plane.points->push_back(cloud->points[idx]);
 					}
 					plane.ComputeProperties();
-					plane.Segment(0.2);
+					plane.Segment(SegSize);
 					plane.build();
-					outPlanes.push_back(plane);
+
+					if (max_plane_num != 0)
+					{
+						if (i + 1 < max_plane_num)
+							outPlanes.push_back(plane);
+					}
+					else
+						outPlanes.push_back(plane);
 				}
+
 				spdlog::info("The number of planes extracted is {}.", outPlanes.size());
 				return true;
 			}
