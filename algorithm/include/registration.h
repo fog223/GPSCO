@@ -57,7 +57,8 @@ namespace GPSCO
 		int group1_index;
 		int group2_index;
 		std::vector<std::pair<int, int>> planepairs; // planes_src and planes_tgt correspond one to one
-		int match_num; // Matching score of two plane groups
+		int match_num; // Matching score of two plane groups(repetitive structure)
+		float area; // Sum of the areas of the matching planes (take the one with the smaller area)
 	};
 
 	// In the same point cloud, two plane groups that meet the requirements (30~150°)
@@ -111,6 +112,7 @@ namespace GPSCO
 		int group_tgt_index3;
 
 		float match_score; // Sum of matching scores for the three corresponding plane groups
+		float area_score; // Sum of area scores for the three corresponding plane groups
 	};
 
 	// Information necessary to calculate the transformation matrix
@@ -126,164 +128,210 @@ namespace GPSCO
 		bool
 		operator<(const RT_Info& b) const
 		{
-			if (confidence == b.confidence)
-				return Dmean < b.Dmean;
-			else
-				return confidence > b.confidence;
+			return confidence > b.confidence;
 		}
-
-		void Compute_Dmean();
 
 	 public:
 		MatchGroup plane_pairs1; // plane pairs in plane group 1
 		MatchGroup plane_pairs2; // plane pairs in plane group 2
 		MatchGroup plane_pairs3; // plane pairs in plane group 3
 
-		GPSCO::cloudptr Intersection_points_src; // Intersection of three planes
-		GPSCO::cloudptr Intersection_points_tgt; // Intersection of three planes
+		std::vector<std::pair<int,int>> match_plane; // Matching planes that can overlap after final validation
 
+		Eigen::Matrix4f ini_rt; // initial transformation matrix
 		Eigen::Matrix4f rt; // transformation matrix
 		float confidence; // possibility
-		float Dmean; // Mean point pair Distance
 	};
 
-	namespace Registration
+	class Registration
 	{
-		/// GPSCO algorithm for point cloud registration
-		/// \param cloud_src Source point cloud
-		/// \param cloud_tgt target point cloud
-		/// \param params main parameters in GPSCO algorithm
-		/// \param RT transformation matrix
-		/// \return Is the transformation matrix calculation successful
-		bool Regis(
-			const GPSCO::cloudptr cloud_src,
-			const GPSCO::cloudptr cloud_tgt,
-			GPSCO::Params& params,
-			Eigen::Matrix4f& RT);
+	 public:
+//		// typedef
+//		typedef pcl::PointCloud<pcl::PointXYZ> cloud;
+//		typedef pcl::PointCloud<pcl::PointXYZ>::Ptr cloudptr;
 
+		struct Options
+		{
+			Options()
+			{
+			}
+
+			// Whether it is a regular scenario
+			bool IsRegular = true;
+			// Plane extraction parameters
+			int min_support_points = 1000;
+			int max_plane_num = 20;
+			float SmoothnessThreshold = 5.0f;
+			float CurvatureThreshold = 2.0f;
+			//
+			float SegSize = 0.3;
+			// Cluster parameters
+			float parallel_thresh = 5.0f;
+			float coplanar_thresh = 2.0f;
+			// Match parameters
+			float e_pl2pldist = 0.1f;
+			//
+			float min_pl2pldist = 2.0f;
+			// angle
+			float angle_min = 30;
+			float angle_max = 150;
+			// Maximum constraint distance between matching planes (regular), Inspect_Structure
+			float max_dist_inspect = 0.5;
+			// Conditions for matching between two candidates
+			float e_angle = 5.0;
+			//
+			float e_translation = SegSize;
+			// The angle and distance at which two planes may overlap
+			float overlap_angle = 2;
+			float overlap_dist = 0.1;
+			// The maximum distance between point pairs that overlap, Evaluate
+			float max_dist_evaluate = 0.5;
+		};
+
+		Registration(Options options_ = Options()) : options(options_)
+		{
+		}
+
+		bool SetCloud(GPSCO::cloudptr cloud_src_, GPSCO::cloudptr cloud_tgt_)
+		{
+			if (cloud_src_->empty() || cloud_tgt_->empty())
+			{
+				spdlog::error("Input data is empty.");
+				return false;
+			}
+
+			cloud_src = cloud_src_;
+			cloud_tgt = cloud_tgt_;
+
+			return true;
+		}
+
+		Eigen::Matrix4f GetRT()
+		{
+			return Final_RT;
+		}
+
+		/// GPSCO algorithm for point cloud registration
+		/// \return Is the transformation matrix calculation successful
+		bool Regis();
+
+		/// Configuration items
+		Options options;
+
+		// running time
+		float time_plane_extra = 0.0f;
+		float time_plane_cluster = 0.0f;
+		float time_Match = 0.0f;
+		float time_Verify = 0.0f;
+		float time_Total = 0.0f;
+
+	 private:
 		/// Planar clustering
 		/// \param Planes plane to be clustered
-		/// \param parallel_thresh Parallel threshold for planar clustering
-		/// \param coplanar_thresh Coplanar threshold for planar clustering
 		/// \param PlaneGroups Clustered plane group set
 		/// \return Is clustering successful
 		bool Plane_Cluster(
 			const std::vector<GPSCO::PLANE>& Planes,
-			float parallel_thresh,
-			float coplanar_thresh,
 			std::vector<std::vector<std::vector<int>>>& PlaneGroups);
 
-		/// Save the plane groups separately, with different colour
+		/// Compute the mean normal vector of a planar group
 		/// \param Planes
 		/// \param PlaneGroups
-		/// \param outpath
-		/// \return .txt
-		bool Export_groups(
+		/// \param AvgNorm_Group
+		/// \return
+		bool Compute_AvgPlaneGroupNorm(
 			const std::vector<GPSCO::PLANE>& Planes,
-			std::vector<std::vector<std::vector<int>>>& PlaneGroups,
-			std::string outpath);
-
-		/// Save the plane clusters separately, with different colour
-		/// \param Planes
-		/// \param PlaneGroups
-		/// \param outpath
-		/// \return .txt
-		bool Export_cluster(
-			const std::vector<GPSCO::PLANE>& Planes,
-			std::vector<std::vector<std::vector<int>>>& PlaneGroups,
-			std::string outpath);
+			const std::vector<std::vector<std::vector<int>>>& PlaneGroups,
+			std::vector<Eigen::Vector3f>& AvgNorm_Group);
 
 		/// Evaluate matching scores between plane groups based on moving alignment method
-		/// \param Planes_src
-		/// \param Planes_tgt
-		/// \param PlaneGroups_src plane groups in source point cloud
-		/// \param PlaneGroups_tgt plane groups in target point cloud
-		/// \param dist_thresh matching threshold
-		/// \param group_table A table of matching relationship between plane groups
-		/// \return
-		bool Compute_Group_Table(
-			const std::vector<GPSCO::PLANE>& Planes_src,
-			const std::vector<GPSCO::PLANE>& Planes_tgt,
-			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_src,
-			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_tgt,
-			float dist_thresh,
-			std::vector<std::vector<std::vector<MatchGroup>>>& group_table);
+		bool Compute_Group_Table();
 
 		/// Maximum number of aligned planes between two plane groups
 		/// \param group1_index Subscript index value of group 1
 		/// \param group2_index Subscript index value of group 2
-		/// \param Planes_src
-		/// \param Planes_tgt
-		/// \param planegroup_src a plane group in source point cloud
-		/// \param planegroup_tgt a plane group in target point cloud
-		/// \param dist_thresh
 		/// \param match_vec Storage plane correspondence
-		/// \return
 		bool Moving_alignment(
 			int group1_index,
 			int group2_index,
-			const std::vector<GPSCO::PLANE>& Planes_src,
-			const std::vector<GPSCO::PLANE>& Planes_tgt,
-			const std::vector<std::vector<int>>& planegroup_src,
-			const std::vector<std::vector<int>>& planegroup_tgt,
-			float dist_thresh,
 			std::vector<MatchGroup>& match_vec);
 
-		// The distance between two plane clusters
+		/// The distance between two plane clusters
 		/// \param Planes plane set
 		/// \param Normal_avg Average normal vector of plane group
 		/// \param cluster1 planar cluster 1
 		/// \param cluster2 planar cluster 2
 		/// \return distance between planar clusters
-		float dist_TwoClsuter(
+		float Dist_TwoClsuter(
 			const std::vector<GPSCO::PLANE>& Planes,
 			const Eigen::Vector3f Normal_avg,
 			const std::vector<int>& cluster1,
 			const std::vector<int>& cluster2);
 
 		/// In the same point cloud, obtain three plane groups that meet the requirements.
-		/// The angles between the plane groups are in the range of angle_min~angle_max. Generally set to 30~150
+		/// Angle(n1, n2) ~ (angle_min, angle_max). Generally set to 30~150
+		/// Angle(n3, n1.corss(n2)) ~ (0, 90-angle_min) or (90+angle_min, 180)
 		/// \param Planes plane set
 		/// \param PlaneGroups plane group set
-		/// \param angle_min minimum angle
-		/// \param angle_max maximum angle
 		/// \param group_three_vector Eligible candidates
 		/// \return does it exist
 		bool Get_Group_Three(
 			const std::vector<GPSCO::PLANE>& Planes,
 			const std::vector<std::vector<std::vector<int>>>& PlaneGroups,
-			float angle_min,
-			float angle_max,
 			std::vector<GPSCO::Group_Three>& group_three_vector);
 
 		/// The GPSCO algorithm is used to directly determine the optimal match.
 		/// When there is more than one optimal situation, the transformation matrix is verified.
-		/// \param Planes_src
-		/// \param Planes_tgt
-		/// \param PlaneGroups_src
-		/// \param PlaneGroups_tgt
-		/// \param group_table
-		/// \param group_three_vector_src candidates in source point cloud
-		/// \param group_three_vector_tgt candidates in target point cloud
-		/// \param final_rt final registration result
-		/// \return
-		bool Get_transformation_matrix(
-			const std::vector<GPSCO::PLANE>& Planes_src,
-			const std::vector<GPSCO::PLANE>& Planes_tgt,
-			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_src,
-			const std::vector<std::vector<std::vector<int>>>& PlaneGroups_tgt,
-			std::vector<std::vector<std::vector<MatchGroup>>>& group_table,
-			const std::vector<GPSCO::Group_Three>& group_three_vector_src,
-			const std::vector<GPSCO::Group_Three>& group_three_vector_tgt,
-			Eigen::Matrix4f& final_rt);
+		bool Get_transformation_matrix();
+
+		/// Finding the optimal transformation matrix
+		bool Find_optimal_RT(
+			const GPSCO::Group_Three_Pair& group_three_pair,
+			int& min_match_num,
+			std::vector<GPSCO::RT_Info>& RT_vector);
+
+		/// Optimisation transformation matrix
+		bool Fine_RT(RT_Info& rt_info);
+
+		/// reject the fake and preserve the genuine
+		bool Inspect_Structure(
+			const RT_Info& rt_temp,
+			int& match_num);
 
 		/// Evaluation of the transformation matrix, The score is the proportional sum of the overlapping planes
-		/// \param planes_src
-		/// \param planes_tgt
 		/// \param rt_temp Transformation matrix to be evaluated
-		void Evaluate(
-			const std::vector<GPSCO::PLANE>& planes_src,
-			const std::vector<GPSCO::PLANE>& planes_tgt,
-			RT_Info& rt_temp);
-	}
+		bool Evaluate(RT_Info& rt_temp);
+
+		/// Save the plane clusters separately, with different colour
+		/// output: .txt
+		bool Export_Cluster(std::string outpath);
+
+		/// Save the plane groups separately, with different colour
+		/// output: .txt
+		bool Export_Groups(std::string outpath);
+
+		// original point cloud
+		GPSCO::cloudptr cloud_src;
+		GPSCO::cloudptr cloud_tgt;
+
+		std::vector<GPSCO::PLANE> Planes_src;
+		std::vector<GPSCO::PLANE> Planes_tgt;
+
+		std::vector<std::vector<std::vector<int>>> PlaneGroups_src;
+		std::vector<std::vector<std::vector<int>>> PlaneGroups_tgt;
+
+		std::vector<Eigen::Vector3f> AvgNorm_Group_src;
+		std::vector<Eigen::Vector3f> AvgNorm_Group_tgt;
+
+		std::vector<GPSCO::Group_Three> group_three_vector_src;
+		std::vector<GPSCO::Group_Three> group_three_vector_tgt;
+
+		std::vector<std::vector<std::vector<MatchGroup>>> group_table; // The relationship table between plane groups
+
+		std::vector<GPSCO::RT_Info> RT_vector;
+
+		Eigen::Matrix4f Final_RT = Eigen::Matrix4f::Identity();
+
+		bool IsSuccessful = false;
+	};
 }
