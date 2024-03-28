@@ -112,7 +112,6 @@ namespace GPSCO
 			rg.extract(clusters);
 
 			// Obtain planes for each of the different connectivity areas
-
 			if (clusters.empty())
 			{
 				spdlog::warn("No planes extracted.");
@@ -120,6 +119,10 @@ namespace GPSCO
 			}
 			else
 			{
+				std::sort(clusters.begin(), clusters.end(), [](const pcl::PointIndices& a, const pcl::PointIndices& b)
+				{
+				  return a.indices.size() > b.indices.size();
+				});
 				for (int i = 0; i < clusters.size(); i++)
 				{
 					GPSCO::PLANE plane;
@@ -133,7 +136,7 @@ namespace GPSCO
 
 					if (max_plane_num != 0)
 					{
-						if (i + 1 < max_plane_num)
+						if (i < max_plane_num)
 							outPlanes.push_back(plane);
 					}
 					else
