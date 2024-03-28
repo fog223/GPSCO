@@ -79,4 +79,11 @@ namespace GPSCO
 
 	// Calculate the distance from the point to the plane
 	float distancePointToPlane(const Eigen::Vector3f& point, const Eigen::Vector3f& planeNormal, const double& d);
+
+	// Point density calculation for point clouds
+	bool Compute_density(cloudptr points, float& density);
+
+	/// Compute the rotation matrix for two pairs of corresponding vectors
+	bool Compute_rotMatrix(Eigen::Vector3f normal1_src, Eigen::Vector3f normal2_src,
+		Eigen::Vector3f normal1_tgt, Eigen::Vector3f normal2_tgt, Eigen::Matrix3f& rotMatrix);
 }

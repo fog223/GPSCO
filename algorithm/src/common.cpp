@@ -5,6 +5,7 @@
 // pcl
 #include <pcl/common/centroid.h>
 #include <pcl/keypoints/uniform_sampling.h>
+#include <pcl/registration/ia_fpcs.h>
 // local
 #include "common.h"
 
@@ -145,5 +146,34 @@ namespace GPSCO
 	{
 		float distance = (point.dot(planeNormal) + d) / planeNormal.norm();
 		return std::fabs(distance);
+	}
+
+	bool Compute_density(cloudptr points, float& density)
+	{
+		float dist_max = 100.0;
+		density = pcl::getMeanPointDensity<pcl::PointXYZ>(points, dist_max, 8);
+		return true;
+	}
+
+	bool Compute_rotMatrix(Eigen::Vector3f normal1_src, Eigen::Vector3f normal2_src,
+		Eigen::Vector3f normal1_tgt, Eigen::Vector3f normal2_tgt, Eigen::Matrix3f& rotMatrix)
+	{
+		Eigen::Matrix3f n_matrix;
+		n_matrix.col(0) = normal1_src;
+		n_matrix.col(1) = normal2_src;
+		n_matrix.col(2) = normal1_src.cross(normal2_src);
+		Eigen::Matrix3f n_inverse = n_matrix.inverse();
+
+		Eigen::Matrix3f T;
+		T.col(0) = normal1_tgt;
+		T.col(1) = normal2_tgt;
+		T.col(2) = normal1_tgt.cross(normal2_tgt);
+		T *= n_inverse;
+
+		// Orthogonalise T to obtain the rotation matrix R
+		Eigen::JacobiSVD<Eigen::Matrix3f> svd(T, Eigen::ComputeFullU | Eigen::ComputeFullV);
+		rotMatrix = svd.matrixU() * svd.matrixV().transpose();
+
+		return true;
 	}
 }
