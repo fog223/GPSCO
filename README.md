@@ -2,7 +2,7 @@
 
 ## GPSCO: Global Planar Structural Constraint Optimal based point cloud registration algorithm for repetitive structures
 
-![flowchart.tif](flowchart.tif)
+![flowchart.jpg](flowchart.jpg)
 
 ---
 
