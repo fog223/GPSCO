@@ -24,7 +24,8 @@
 namespace fs = std::filesystem;
 
 // Custom comparison function to sort based on numeric values in file names
-bool numericStringCompare(const std::string& a, const std::string& b) {
+bool numericStringCompare(const std::string& a, const std::string& b)
+{
 	// Extract file names from full paths
 	std::string fileNameA = a.substr(a.find_last_of("/\\") + 1);
 	std::string fileNameB = b.substr(b.find_last_of("/\\") + 1);
@@ -217,6 +218,7 @@ int main(int argc, char** argv)
 			// GPSCO determines the transformation matrix
 			start = clock();
 			Eigen::Matrix4f rt;
+			spdlog::info("processing : {} and {}.", pair.first, pair.second);
 			if (GPSCO::Registration::Get_transformation_matrix(planes_all[pair.first - 1], planes_all[pair.second - 1],
 				PlaneGroups_all[pair.first - 1], PlaneGroups_all[pair.second - 1], group_table,
 				group_three_vector_all[pair.first - 1], group_three_vector_all[pair.second - 1], rt))
