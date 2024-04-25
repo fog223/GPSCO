@@ -95,6 +95,8 @@ namespace GPSCO
 
 	RT_Info::RT_Info()
 	{
+		Intersection_points_src.reset(new GPSCO::cloud);
+		Intersection_points_tgt.reset(new GPSCO::cloud);
 		ini_rt.setIdentity();
 		rt.setIdentity();
 		confidence = 0.0f;
@@ -945,7 +947,7 @@ namespace GPSCO
 
 		// Global Planar Structural Constraint Optimal(highest score)
 		int min_match_num = 3;
-		if (!options.IsRegular)
+		if (options.IsRepeat)
 		{
 			min_match_num = group_three_pair_vec[0].match_score;
 		}
@@ -1196,6 +1198,21 @@ namespace GPSCO
 								rt_info.plane_pairs2 = gg2_vec[j];
 								rt_info.plane_pairs3 = gg3_vec[k];
 
+								Get_Intersections(rt_info);
+								if (rt_info.Intersection_points_src->points.empty())
+									continue;
+
+								if (options.IsRepeat && rt_info.Intersection_points_src->points.size() >= 3)
+								{
+									pcl::registration::TransformationEstimationSVD<pcl::PointXYZ, pcl::PointXYZ> SVD;
+									SVD.estimateRigidTransformation(
+										*rt_info.Intersection_points_src,
+										*rt_info.Intersection_points_tgt,
+										rt_info.rt);
+
+									RT_vector.push_back(rt_info);
+								}
+
 								Eigen::Matrix3f rotMatrix1, rotMatrix2, rotMatrix3, rotMatrix4;
 								bool possible1 = false, possible2 = false, possible3 = false, possible4 = false;
 								if (lock1 && lock2)
@@ -1353,40 +1370,18 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									if (options.IsRegular)
+									// We think that both structural constraints and overlap are important in regular scenarios,
+									// and therefore the matching plane needs to be checked and calibrated
+									int match_num = 0;
+									Inspect_Structure(rt_info, match_num);
+
+									if (min_match_num == match_num)
+										RT_vector.push_back(rt_info);
+									else if(min_match_num < match_num)
 									{
-										// We think that both structural constraints and overlap are important in regular scenarios,
-										// and therefore the matching plane needs to be checked and calibrated
-										int match_num = 0;
-										Inspect_Structure(rt_info, match_num);
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
-									}
-									else
-									{
-										// We think that structural constraints
-										// are much more important than overlap in repeated structure scenarios
-										int match_num = gg1_vec[i].match_num + gg2_vec[j].match_num + gg3_vec[k].match_num;
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
+										min_match_num = match_num;
+										RT_vector.clear();
+										RT_vector.push_back(rt_info);
 									}
 								}
 								if (possible2)
@@ -1412,40 +1407,18 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									if (options.IsRegular)
+									// We think that both structural constraints and overlap are important in regular scenarios,
+									// and therefore the matching plane needs to be checked and calibrated
+									int match_num = 0;
+									Inspect_Structure(rt_info, match_num);
+
+									if (min_match_num == match_num)
+										RT_vector.push_back(rt_info);
+									else if(min_match_num < match_num)
 									{
-										// We think that both structural constraints and overlap are important in regular scenarios,
-										// and therefore the matching plane needs to be checked and calibrated
-										int match_num = 0;
-										Inspect_Structure(rt_info, match_num);
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
-									}
-									else
-									{
-										// We think that structural constraints
-										// are much more important than overlap in repeated structure scenarios
-										int match_num = gg1_vec[i].match_num + gg2_vec[j].match_num + gg3_vec[k].match_num;
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
+										min_match_num = match_num;
+										RT_vector.clear();
+										RT_vector.push_back(rt_info);
 									}
 								}
 								if (possible3)
@@ -1471,40 +1444,18 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									if (options.IsRegular)
+									// We think that both structural constraints and overlap are important in regular scenarios,
+									// and therefore the matching plane needs to be checked and calibrated
+									int match_num = 0;
+									Inspect_Structure(rt_info, match_num);
+
+									if (min_match_num == match_num)
+										RT_vector.push_back(rt_info);
+									else if(min_match_num < match_num)
 									{
-										// We think that both structural constraints and overlap are important in regular scenarios,
-										// and therefore the matching plane needs to be checked and calibrated
-										int match_num = 0;
-										Inspect_Structure(rt_info, match_num);
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
-									}
-									else
-									{
-										// We think that structural constraints
-										// are much more important than overlap in repeated structure scenarios
-										int match_num = gg1_vec[i].match_num + gg2_vec[j].match_num + gg3_vec[k].match_num;
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
+										min_match_num = match_num;
+										RT_vector.clear();
+										RT_vector.push_back(rt_info);
 									}
 								}
 								if (possible4)
@@ -1530,40 +1481,18 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									if (options.IsRegular)
+									// We think that both structural constraints and overlap are important in regular scenarios,
+									// and therefore the matching plane needs to be checked and calibrated
+									int match_num = 0;
+									Inspect_Structure(rt_info, match_num);
+
+									if (min_match_num == match_num)
+										RT_vector.push_back(rt_info);
+									else if(min_match_num < match_num)
 									{
-										// We think that both structural constraints and overlap are important in regular scenarios,
-										// and therefore the matching plane needs to be checked and calibrated
-										int match_num = 0;
-										Inspect_Structure(rt_info, match_num);
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
-									}
-									else
-									{
-										// We think that structural constraints
-										// are much more important than overlap in repeated structure scenarios
-										int match_num = gg1_vec[i].match_num + gg2_vec[j].match_num + gg3_vec[k].match_num;
-										if (match_num == min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.push_back(rt_info);
-										}
-										else if (match_num > min_match_num)
-										{
-											min_match_num = match_num;
-											RT_vector.clear();
-											RT_vector.push_back(rt_info);
-										}
+										min_match_num = match_num;
+										RT_vector.clear();
+										RT_vector.push_back(rt_info);
 									}
 								}
 							}
@@ -1582,11 +1511,105 @@ namespace GPSCO
 		return true;
 	}
 
+	bool Registration::Get_Intersections(GPSCO::RT_Info& rt_info)
+	{
+		// Planar correspondences to point-pair correspondences
+		for (const auto& pair1 : rt_info.plane_pairs1.planepairs)
+		{
+			for (const auto& pair2 : rt_info.plane_pairs2.planepairs)
+			{
+				for (const auto& pair3 : rt_info.plane_pairs3.planepairs)
+				{
+					Eigen::Vector3f inter_pt_src(0.0, 0.0, 0.0), inter_pt_tgt(0.0, 0.0, 0.0);
+					Eigen::Vector4f plane_a_src, plane_b_src, plane_c_src;
+					Eigen::Vector4f plane_a_tgt, plane_b_tgt, plane_c_tgt;
+					std::vector<Eigen::Vector3f> intersection_points_src; // Used for averaging
+					std::vector<Eigen::Vector3f> intersection_points_tgt; // Used for averaging
+					for (const auto& plane_a_index : PlaneGroups_src[rt_info.plane_pairs1.group1_index][pair1.first])
+					{
+						plane_a_src << Planes_src[plane_a_index].coefficients[0],
+							Planes_src[plane_a_index].coefficients[1],
+							Planes_src[plane_a_index].coefficients[2],
+							Planes_src[plane_a_index].coefficients[3];
+						for (const auto& plane_b_index : PlaneGroups_src[rt_info.plane_pairs2.group1_index][pair2.first])
+						{
+							plane_b_src << Planes_src[plane_b_index].coefficients[0],
+								Planes_src[plane_b_index].coefficients[1],
+								Planes_src[plane_b_index].coefficients[2],
+								Planes_src[plane_b_index].coefficients[3];
+							for (const auto& plane_c_index : PlaneGroups_src[rt_info.plane_pairs3.group1_index][pair3.first])
+							{
+								plane_c_src << Planes_src[plane_c_index].coefficients[0],
+									Planes_src[plane_c_index].coefficients[1],
+									Planes_src[plane_c_index].coefficients[2],
+									Planes_src[plane_c_index].coefficients[3];
+
+								if (pcl::threePlanesIntersection(plane_a_src, plane_b_src, plane_c_src, inter_pt_src))
+								{
+									intersection_points_src.push_back(inter_pt_src);
+								}
+							}
+						}
+					}
+					for (const auto& plane_a_index : PlaneGroups_tgt[rt_info.plane_pairs1.group2_index][pair1.second])
+					{
+						plane_a_tgt << Planes_tgt[plane_a_index].coefficients[0],
+							Planes_tgt[plane_a_index].coefficients[1],
+							Planes_tgt[plane_a_index].coefficients[2],
+							Planes_tgt[plane_a_index].coefficients[3];
+						for (const auto& plane_b_index : PlaneGroups_tgt[rt_info.plane_pairs2.group2_index][pair2.second])
+						{
+							plane_b_tgt << Planes_tgt[plane_b_index].coefficients[0],
+								Planes_tgt[plane_b_index].coefficients[1],
+								Planes_tgt[plane_b_index].coefficients[2],
+								Planes_tgt[plane_b_index].coefficients[3];
+							for (const auto& plane_c_index : PlaneGroups_tgt[rt_info.plane_pairs3.group2_index][pair3.second])
+							{
+								plane_c_tgt << Planes_tgt[plane_c_index].coefficients[0],
+									Planes_tgt[plane_c_index].coefficients[1],
+									Planes_tgt[plane_c_index].coefficients[2],
+									Planes_tgt[plane_c_index].coefficients[3];
+
+								if (pcl::threePlanesIntersection(plane_a_tgt, plane_b_tgt, plane_c_tgt, inter_pt_tgt))
+								{
+									intersection_points_tgt.push_back(inter_pt_tgt);
+								}
+							}
+						}
+					}
+					if (!intersection_points_src.empty() && !intersection_points_tgt.empty())
+					{
+						// Average
+						inter_pt_src.setZero();
+						for (int num = 0; num < intersection_points_src.size(); num++)
+						{
+							inter_pt_src += intersection_points_src[num];
+						}
+						inter_pt_src /= intersection_points_src.size();
+						rt_info.Intersection_points_src->push_back(
+							pcl::PointXYZ(inter_pt_src[0], inter_pt_src[1], inter_pt_src[2]));
+
+						inter_pt_tgt.setZero();
+						for (int num = 0; num < intersection_points_tgt.size(); num++)
+						{
+							inter_pt_tgt += intersection_points_tgt[num];
+						}
+						inter_pt_tgt /= intersection_points_tgt.size();
+						rt_info.Intersection_points_tgt->push_back(
+							pcl::PointXYZ(inter_pt_tgt[0], inter_pt_tgt[1], inter_pt_tgt[2]));
+					}
+				}
+			}
+		}
+
+		return true;
+	}
+
 	bool Registration::Fine_RT(RT_Info& rt_info)
 	{
-//			// Before optimisation
-//			std::cout << "ini_rt:" << std::endl;
-//			std::cout << rt_info.ini_rt << std::endl;
+//		// Before optimisation
+//		std::cout << "ini_rt:" << std::endl;
+//		std::cout << rt_info.ini_rt << std::endl;
 
 		// Extract rotation part (quaternion)
 		Eigen::Quaternionf quaternion(rt_info.ini_rt.block<3, 3>(0, 0));
@@ -1679,23 +1702,23 @@ namespace GPSCO
 		rt_info.rt.block<3, 3>(0, 0) = fine_q.toRotationMatrix();
 		rt_info.rt.block<3, 1>(0, 3) = fine_t;
 
-//			// --------------------------Test---------------------------------
-//			// After optimisation
-//			std::cout << "fine_rt:" << std::endl;
-//			std::cout << rt_info.rt << std::endl;
+//		// --------------------------Test---------------------------------
+//		// After optimisation
+//		std::cout << "fine_rt:" << std::endl;
+//		std::cout << rt_info.rt << std::endl;
 //
-//			// Calculate the rotation difference
-//			Eigen::Matrix3f rotationDiff = rt_info.ini_rt.block<3, 3>(0, 0).transpose() * rt_info.rt.block<3, 3>(0, 0);
-//			Eigen::AngleAxisf rotationAngleAxis(rotationDiff);
-//			double rotationAngle = rotationAngleAxis.angle();
+//		// Calculate the rotation difference
+//		Eigen::Matrix3f rotationDiff = rt_info.ini_rt.block<3, 3>(0, 0).transpose() * rt_info.rt.block<3, 3>(0, 0);
+//		Eigen::AngleAxisf rotationAngleAxis(rotationDiff);
+//		double rotationAngle = rotationAngleAxis.angle();
 //
-//			// Calculate the translation difference (Euclidean distance)
-//			Eigen::Vector3f translationDiff = rt_info.ini_rt.block<3, 1>(0, 3) - rt_info.rt.block<3, 1>(0, 3);
-//			double translationDistance = translationDiff.norm();
+//		// Calculate the translation difference (Euclidean distance)
+//		Eigen::Vector3f translationDiff = rt_info.ini_rt.block<3, 1>(0, 3) - rt_info.rt.block<3, 1>(0, 3);
+//		double translationDistance = translationDiff.norm();
 //
-//			// Output the rotation angle and translation distance
-//			std::cout << "Rotation Angle Difference: " << rotationAngle << " radians" << std::endl;
-//			std::cout << "Translation Distance: " << translationDistance << std::endl;
+//		// Output the rotation angle and translation distance
+//		std::cout << "Rotation Angle Difference: " << rotationAngle << " radians" << std::endl;
+//		std::cout << "Translation Distance: " << translationDistance << std::endl;
 
 		return true;
 	}

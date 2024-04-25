@@ -136,6 +136,8 @@ namespace GPSCO
 		MatchGroup plane_pairs2; // plane pairs in plane group 2
 		MatchGroup plane_pairs3; // plane pairs in plane group 3
 
+		GPSCO::cloudptr Intersection_points_src; // Intersection of three planes
+		GPSCO::cloudptr Intersection_points_tgt; // Intersection of three planes
 		std::vector<std::pair<int,int>> match_plane; // Matching planes that can overlap after final validation
 
 		Eigen::Matrix4f ini_rt; // initial transformation matrix
@@ -156,36 +158,36 @@ namespace GPSCO
 			{
 			}
 
-			// Whether it is a regular scenario
-			bool IsRegular = true;
+			// Whether it is a Repeat Structure scenario
+			bool IsRepeat = true;
 			// Plane extraction parameters
 			int min_support_points = 1000;
 			int max_plane_num = 20;
-			float SmoothnessThreshold = 5.0f;
-			float CurvatureThreshold = 2.0f;
+			float SmoothnessThreshold = 2.0f;
+			float CurvatureThreshold = 1.0f;
 			//
-			float SegSize = 0.3;
+			float SegSize = 0.2;
 			// Cluster parameters
 			float parallel_thresh = 5.0f;
 			float coplanar_thresh = 2.0f;
 			// Match parameters
-			float e_pl2pldist = 0.1f;
+			float e_pl2pldist = 0.05f;
 			//
-			float min_pl2pldist = 2.0f;
+			float min_pl2pldist = 0.3f;
 			// angle
 			float angle_min = 30;
 			float angle_max = 150;
 			// Maximum constraint distance between matching planes (regular), Inspect_Structure
-			float max_dist_inspect = 0.5;
+			float max_dist_inspect = 0.1;
 			// Conditions for matching between two candidates
 			float e_angle = 5.0;
 			//
 			float e_translation = SegSize;
 			// The angle and distance at which two planes may overlap
 			float overlap_angle = 2;
-			float overlap_dist = 0.1;
+			float overlap_dist = 0.03;
 			// The maximum distance between point pairs that overlap, Evaluate
-			float max_dist_evaluate = 0.5;
+			float max_dist_evaluate = 0.3;
 		};
 
 		Registration(Options options_ = Options()) : options(options_)
@@ -289,6 +291,8 @@ namespace GPSCO
 			const GPSCO::Group_Three_Pair& group_three_pair,
 			int& min_match_num,
 			std::vector<GPSCO::RT_Info>& RT_vector);
+
+		bool Get_Intersections(GPSCO::RT_Info& rt_info);
 
 		/// Optimisation transformation matrix
 		bool Fine_RT(RT_Info& rt_info);
