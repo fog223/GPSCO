@@ -27,8 +27,8 @@ int main(int argc, char** argv)
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_src(new pcl::PointCloud<pcl::PointXYZ>);
 	pcl::PointCloud<pcl::PointXYZ>::Ptr cloud_tgt(new pcl::PointCloud<pcl::PointXYZ>);
 
-	if (pcl::io::loadPLYFile<pcl::PointXYZ>("D:\\Benchmark_HS\\HS_2\\1-RawPointCloud-Sampled\\8_sampled.ply", *cloud_src) == -1 ||
-		pcl::io::loadPLYFile<pcl::PointXYZ>("D:\\Benchmark_HS\\HS_2\\1-RawPointCloud-Sampled\\13_sampled.ply", *cloud_tgt) == -1)
+	if (pcl::io::loadPLYFile<pcl::PointXYZ>(argv[1], *cloud_src) == -1 ||
+		pcl::io::loadPLYFile<pcl::PointXYZ>(argv[2], *cloud_tgt) == -1)
 	{
 		spdlog::error("Tata load failure!");
 		return 0;
