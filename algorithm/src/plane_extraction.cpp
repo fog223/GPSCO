@@ -98,10 +98,7 @@ namespace GPSCO
 			pcl::RegionGrowing<pcl::PointXYZ, pcl::Normal> rg;
 			std::vector<pcl::PointIndices> clusters;
 			// Number of points constraint or number of planes constraint
-			if (max_plane_num != 0)
-				rg.setMinClusterSize(50);
-			else
-				rg.setMinClusterSize(min_support_points);
+			rg.setMinClusterSize(min_support_points);
 			rg.setMaxClusterSize(1000000);
 			rg.setSearchMethod(tree);
 			rg.setNumberOfNeighbours(16);
