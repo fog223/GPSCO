@@ -57,7 +57,7 @@ namespace GPSCO
 		int group1_index;
 		int group2_index;
 		std::vector<std::pair<int, int>> planepairs; // planes_src and planes_tgt correspond one to one
-		int match_num; // Matching score of two plane groups(repetitive structure)
+		int match_num; // Matching score of two plane groups
 		float area; // Sum of the areas of the matching planes (take the one with the smaller area)
 	};
 
@@ -138,7 +138,7 @@ namespace GPSCO
 
 		GPSCO::cloudptr Intersection_points_src; // Intersection of three planes
 		GPSCO::cloudptr Intersection_points_tgt; // Intersection of three planes
-		std::vector<std::pair<int,int>> match_plane; // Matching planes that can overlap after final validation
+		std::vector<std::pair<int, int>> match_plane; // Matching planes that can overlap after final validation
 
 		Eigen::Matrix4f ini_rt; // initial transformation matrix
 		Eigen::Matrix4f rt; // transformation matrix
@@ -158,13 +158,15 @@ namespace GPSCO
 			{
 			}
 
-			// Whether it is a Repeat Structure scenario
-			bool IsRepeat = true;
+			// Whether or not to validate
+			bool IsValidate = false;
 			// Plane extraction parameters
-			int min_support_points = 1000;
-			int max_plane_num = 20;
 			float SmoothnessThreshold = 2.0f;
 			float CurvatureThreshold = 1.0f;
+			// constraint - Reduced computation and false detection.
+			// adjusted depending on the number and density of points in the scanned point cloud and the scene.
+			int min_support_points = 50;
+			int max_plane_num = 30;
 			//
 			float SegSize = 0.2;
 			// Cluster parameters
@@ -177,17 +179,19 @@ namespace GPSCO
 			// angle
 			float angle_min = 30;
 			float angle_max = 150;
-			// Maximum constraint distance between matching planes (regular), Inspect_Structure
-			float max_dist_inspect = 0.1;
+			// Maximum constraint distance between matching planes, Inspect_Structure
+			float max_dist_inspect = 1.0;
 			// Conditions for matching between two candidates
 			float e_angle = 5.0;
-			//
-			float e_translation = SegSize;
 			// The angle and distance at which two planes may overlap
 			float overlap_angle = 2;
-			float overlap_dist = 0.03;
+			float overlap_dist = 0.05;
 			// The maximum distance between point pairs that overlap, Evaluate
 			float max_dist_evaluate = 0.3;
+
+			// wait time (Beyond that time, the registration is considered to have failed.)
+			int wait_time = 20; // s
+			clock_t start;
 		};
 
 		Registration(Options options_ = Options()) : options(options_)
@@ -226,6 +230,9 @@ namespace GPSCO
 		float time_Match = 0.0f;
 		float time_Verify = 0.0f;
 		float time_Total = 0.0f;
+
+		// Is Success
+		bool IsSuccess = false;
 
 	 private:
 		/// Planar clustering

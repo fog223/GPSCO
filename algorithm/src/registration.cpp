@@ -183,6 +183,7 @@ namespace GPSCO
 		if (Get_Group_Three(Planes_src, PlaneGroups_src, group_three_vector_src)
 			&& Get_Group_Three(Planes_tgt, PlaneGroups_tgt, group_three_vector_tgt))
 		{
+			spdlog::info("Get candidate item completed.");
 			// GPSCO determines the transformation matrix
 			time_begin = clock();
 			if (Get_transformation_matrix())
@@ -196,6 +197,7 @@ namespace GPSCO
 				auto time_finsh = clock();
 				time_Total = (double)(time_finsh - time_start) / CLOCKS_PER_SEC;
 
+				IsSuccess = true;
 				return true;
 			}
 		}
@@ -233,6 +235,10 @@ namespace GPSCO
 						PlaneGroups_parallel[j].push_back(i);
 					}
 				}
+
+				// too much
+				if (PlaneGroups_parallel.size() > 9)
+					continue;
 
 				// non-parallel
 				if (!is_parallel)
@@ -632,6 +638,9 @@ namespace GPSCO
 							}
 						}
 					}
+
+					if (vec_.size() > 10000)
+						break;
 				}
 
 				for (const auto& vec : vec_)
@@ -720,6 +729,23 @@ namespace GPSCO
 		const std::vector<std::vector<std::vector<int>>>& PlaneGroups,
 		std::vector<GPSCO::Group_Three>& group_three_vector)
 	{
+		bool IsTimeOut = false;
+		bool Cancel = false;
+
+		std::thread TimeWait([&]()
+		{
+		  for (int i = 0; i < options.wait_time; ++i)
+		  {
+			  if (Cancel)
+			  {
+				  return;
+			  }
+			  std::this_thread::sleep_for(std::chrono::milliseconds(500));
+		  }
+		  IsTimeOut = true;
+		});
+		TimeWait.detach();
+
 		if (Planes.empty())
 		{
 			return false;
@@ -732,6 +758,12 @@ namespace GPSCO
 		{
 			for (int j = 0; j < PlaneGroups.size(); j++)
 			{
+				if (IsTimeOut)
+				{
+					spdlog::warn("Timeout_1!");
+					return false;
+				}
+
 				if (i < j)
 				{
 					float group_angle = pcl::getAngle3D(Planes[PlaneGroups[i][0][0]].normal,
@@ -764,6 +796,12 @@ namespace GPSCO
 		{
 			for (int i = 0; i < PlaneGroups.size(); i++)
 			{
+				if (IsTimeOut)
+				{
+					spdlog::warn("Timeout_2!");
+					return false;
+				}
+
 				if (group_base_temp.group1_index != i && group_base_temp.group2_index != i)
 				{
 					Array3I idx;
@@ -818,6 +856,8 @@ namespace GPSCO
 			spdlog::error("The number of three plane groups that meet the threshold is 0.");
 			return false;
 		}
+
+		Cancel = true;
 
 		return true;
 	}
@@ -942,12 +982,16 @@ namespace GPSCO
 			}
 		}
 
+		if (group_three_pair_vec.empty())
+			return false;
+
 		// Sorted by match score, highest to lowest
 		std::sort(group_three_pair_vec.begin(), group_three_pair_vec.end());
 
 		// Global Planar Structural Constraint Optimal(highest score)
+		options.start = clock();
 		int min_match_num = 3;
-		if (options.IsRepeat)
+		if (!options.IsValidate)
 		{
 			min_match_num = group_three_pair_vec[0].match_score;
 		}
@@ -957,6 +1001,14 @@ namespace GPSCO
 			if (group_three_pair_vec[i].match_score < min_match_num)
 				break;
 			Find_optimal_RT(group_three_pair_vec[i], min_match_num, RT_vector);
+
+			clock_t end = clock();
+			float seconds = static_cast<float>(end - options.start) / CLOCKS_PER_SEC;
+			if (seconds > options.wait_time)
+			{
+				spdlog::warn("Timeout!");
+				return false;
+			}
 		}
 
 		if (RT_vector.empty())
@@ -966,7 +1018,7 @@ namespace GPSCO
 		}
 
 		// Verification
-		std::vector<Eigen::Matrix4f> rt_bucket; // Clustering for transformation matrices to avoid repeated validations
+		std::vector<Eigen::Matrix4f> rt_bucket;
 		for (auto& rt_temp : RT_vector)
 		{
 			// Avoiding repetitive transformation matrix calculations
@@ -1158,6 +1210,13 @@ namespace GPSCO
 
 						for (int k = 0; k < gg3_vec.size(); k++)
 						{
+							clock_t end = clock();
+							float seconds = static_cast<float>(end - options.start) / CLOCKS_PER_SEC;
+							if (seconds > options.wait_time)
+							{
+								return false;
+							}
+
 							if ((gg1_vec[i].match_num + gg2_vec[j].match_num + gg3_vec[k].match_num) >= min_match_num)
 							{
 								auto p31_idx = PlaneGroups_src[min_gidx_src][gg3_vec[k].planepairs[0].first][0];
@@ -1202,7 +1261,7 @@ namespace GPSCO
 								if (rt_info.Intersection_points_src->points.empty())
 									continue;
 
-								if (options.IsRepeat && rt_info.Intersection_points_src->points.size() >= 3)
+								if (!options.IsValidate && rt_info.Intersection_points_src->points.size() >= 3)
 								{
 									pcl::registration::TransformationEstimationSVD<pcl::PointXYZ, pcl::PointXYZ> SVD;
 									SVD.estimateRigidTransformation(
@@ -1370,14 +1429,13 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									// We think that both structural constraints and overlap are important in regular scenarios,
-									// and therefore the matching plane needs to be checked and calibrated
+									// Matching plane are checked and calibrated
 									int match_num = 0;
 									Inspect_Structure(rt_info, match_num);
 
 									if (min_match_num == match_num)
 										RT_vector.push_back(rt_info);
-									else if(min_match_num < match_num)
+									else if (min_match_num < match_num)
 									{
 										min_match_num = match_num;
 										RT_vector.clear();
@@ -1407,14 +1465,13 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									// We think that both structural constraints and overlap are important in regular scenarios,
-									// and therefore the matching plane needs to be checked and calibrated
+									// Matching plane are checked and calibrated
 									int match_num = 0;
 									Inspect_Structure(rt_info, match_num);
 
 									if (min_match_num == match_num)
 										RT_vector.push_back(rt_info);
-									else if(min_match_num < match_num)
+									else if (min_match_num < match_num)
 									{
 										min_match_num = match_num;
 										RT_vector.clear();
@@ -1444,14 +1501,13 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									// We think that both structural constraints and overlap are important in regular scenarios,
-									// and therefore the matching plane needs to be checked and calibrated
+									// Matching plane are checked and calibrated
 									int match_num = 0;
 									Inspect_Structure(rt_info, match_num);
 
 									if (min_match_num == match_num)
 										RT_vector.push_back(rt_info);
-									else if(min_match_num < match_num)
+									else if (min_match_num < match_num)
 									{
 										min_match_num = match_num;
 										RT_vector.clear();
@@ -1481,14 +1537,13 @@ namespace GPSCO
 									// Optimisation of the transformation matrix
 									Fine_RT(rt_info);
 
-									// We think that both structural constraints and overlap are important in regular scenarios,
-									// and therefore the matching plane needs to be checked and calibrated
+									// Matching plane are checked and calibrated
 									int match_num = 0;
 									Inspect_Structure(rt_info, match_num);
 
 									if (min_match_num == match_num)
 										RT_vector.push_back(rt_info);
-									else if(min_match_num < match_num)
+									else if (min_match_num < match_num)
 									{
 										min_match_num = match_num;
 										RT_vector.clear();
