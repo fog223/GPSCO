@@ -39,24 +39,15 @@ int main(int argc, char** argv)
 					 "the num of the source point cloud points is {}", cloud_src->size(), cloud_tgt->size());
 	}
 
-	float density_src, density_tgt;
-	GPSCO::Compute_density(cloud_src, density_src);
-	GPSCO::Compute_density(cloud_tgt, density_tgt);
-
 	GPSCO::Registration::Options options;
-	options.IsRepeat = true;
-	options.min_support_points = 800;
-	options.max_plane_num = 0;
-	options.SmoothnessThreshold = 2.0;
-	options.CurvatureThreshold = 1.0;
-	options.SegSize = 0.2;
+	options.IsHomo = true;
+	options.min_support_points = 50;
+	options.max_plane_num = 60;
+	options.SmoothnessThreshold = 5.0;
+	options.CurvatureThreshold = 2.0;
 	options.parallel_thresh = 5.0;
-	options.coplanar_thresh = 5.0;
+	options.coplanar_thresh = 2.0;
 	options.e_pl2pldist = 0.05;
-	options.min_pl2pldist = 0.3;
-	options.max_dist_inspect = 1.0;
-	options.overlap_dist = 0.05;
-	options.max_dist_evaluate = 0.3;
 
 	GPSCO::Registration regis_(options);
 	regis_.SetCloud(cloud_src, cloud_tgt);
