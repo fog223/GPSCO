@@ -40,9 +40,9 @@ int main(int argc, char** argv)
 	}
 
 	GPSCO::Registration::Options options;
-	options.IsHomo = true;
-	options.min_support_points = 50;
-	options.max_plane_num = 60;
+	options.scale = 0.01; // smaller values(Indoor,such as 0.01); larger values(outdoor, such as 0.25)
+	options.min_support_points = 500;
+	options.max_plane_num = 30;
 	options.SmoothnessThreshold = 5.0;
 	options.CurvatureThreshold = 2.0;
 	options.parallel_thresh = 5.0;
