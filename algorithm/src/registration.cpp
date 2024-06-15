@@ -108,6 +108,13 @@ namespace GPSCO
 
 	bool Registration::Regis()
 	{
+		// Adjustment based on scale
+		options.SegSize = 5 * options.scale;
+		options.min_pl2pldist = 20 * options.scale;
+		options.max_dist_inspect = 10 * options.scale;
+		options.overlap_dist = 5 * options.scale;
+		options.max_dist_evaluate = 5 * options.scale;
+
 		auto time_start = clock();
 
 		if (cloud_src->empty())

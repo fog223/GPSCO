@@ -158,15 +158,17 @@ namespace GPSCO
 			{
 			}
 
-			// Whether or not to validate
+			// Whether or not to validate, Fewer parallel planes(true)
 			bool IsValidate = false;
 			// Plane extraction parameters
-			float SmoothnessThreshold = 2.0f;
-			float CurvatureThreshold = 1.0f;
+			float SmoothnessThreshold = 5.0f;
+			float CurvatureThreshold = 2.0f;
 			// constraint - Reduced computation and false detection.
 			// adjusted depending on the number and density of points in the scanned point cloud and the scene.
 			int min_support_points = 50;
 			int max_plane_num = 30;
+			// Average distance between neighbouring points in a point cloud
+			float scale = 0.01;
 			//
 			float SegSize = 0.2;
 			// Cluster parameters
