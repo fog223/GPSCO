@@ -59,13 +59,9 @@ int main(int argc, char** argv)
 
 		spdlog::info("Registration Successful!");
 		std::cout << regis_.GetRT() << std::endl;
-		spdlog::info("Completed.");
 	}
 	else
-	{
 		spdlog::info("Registration failure!");
-		spdlog::info("Completed.");
-	}
 
 	spdlog::info("plane extrction Time: {}", regis_.time_plane_extra);
 	spdlog::info("plane cluster Time: {}", regis_.time_plane_cluster);
