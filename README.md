@@ -43,48 +43,6 @@ Use any IDE that can directly handle CMakeLists files to open the CMakeLists.txt
     ./examples/exam_regis source.ply target.ply result.txt
 ```
 
-* Test the registration results of the GPSCO algorithm on dataset HS1.
-
-```
-    ./examples/exam_accuracy_hs1 ${HS1_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset HS2.
-
-```
-    ./examples/exam_accuracy_hs2 ${HS2_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset ETH-Hauptgebaude.
-
-```
-    ./examples/exam_accuracy_hauptgebaude ${hauptgebaude_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset ETH-Apartment.
-
-```
-    ./examples/exam_accuracy_apartment ${apartment_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset ETH-Stairs.
-
-```
-    ./examples/exam_accuracy_stairs ${stairs_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset Whu-Park.
-
-```
-    ./examples/exam_accuracy_park ${park_DIR} transformation_matrix.txt result.csv
-```
-
-* Test the registration results of the GPSCO algorithm on dataset Whu-Campus.
-
-```
-    ./examples/exam_accuracy_campus ${campus_DIR} transformation_matrix.txt result.csv
-```
-
 ---
 
 ### Benchmark Dataset

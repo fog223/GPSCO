@@ -97,34 +97,33 @@ int main(int argc, char** argv)
 	// Determine which two stations need to be aligned with each other.
 	std::vector<Eigen::Matrix4f> RTs_GroundTruth;
 	std::vector<std::pair<int, int>> pair_regis_idx;
-	for (const auto& path : files_transmatrix)
+	// load GroundTruth
+	std::ifstream file(root_dir + "/3-GroundTruth/gt.txt");
+	if (!file.is_open())
 	{
-		std::ifstream file(path);
-		if (!file.is_open())
-		{
-			spdlog::error("{} Can't Load File.", path);
-			return 0;
-		}
-
-		// Determine the indexes of the two stations to be registered.
-		size_t start = path.find("transformation") + 14; // Find the position after "transformation"
-		size_t end1 = path.find("_", start); // find the position of the next "_"
-		size_t end2 = path.find(".", end1); // find the position of the next "."
-		std::string extractedNumber1 = path.substr(start, end1 - start);
-		std::string extractedNumber2 = path.substr(end1 + 1, end2 - end1 - 1);
-		int idx1 = std::stoi(extractedNumber1); // Convert the extracted string to an integer.
-		int idx2 = std::stoi(extractedNumber2); // Convert the extracted string to an integer.
-		pair_regis_idx.push_back(std::pair<int, int>(idx1, idx2));
-
+		spdlog::error("{} Can't Load File.", root_dir + "/3-GroundTruth/gt.txt");
+		return 0;
+	}
+	else
+	{
+		int index1, index2;
 		Eigen::Matrix4f rt_temp;
-		for (int i = 0; i < 4; ++i)
+		while (!file.eof())
 		{
-			for (int j = 0; j < 4; ++j)
+			file >> index1 >> index2;
+			for (int i = 0; i < 4; ++i)
 			{
-				file >> rt_temp(i, j);
+				for (int j = 0; j < 4; ++j)
+				{
+					file >> rt_temp(i, j);
+				}
 			}
+
+			pair_regis_idx.push_back(std::pair<int, int>(index1, index2));
+			RTs_GroundTruth.push_back(rt_temp);
 		}
-		RTs_GroundTruth.push_back(rt_temp);
+		// Close the file
+		file.close();
 	}
 
 	spdlog::info("GroundTruth load completed.");
@@ -172,21 +171,23 @@ int main(int argc, char** argv)
 		spdlog::info("processing : {} and {}, {} / {}. ", pair.first, pair.second, process_regis, pair_regis_idx.size());
 
 		GPSCO::Registration::Options options;
-		options.IsRepeat = true;
-		options.min_support_points = 1000;
-		options.max_plane_num = 0;
+		options.min_support_points = 500;
+		options.max_plane_num = 30;
 		options.SmoothnessThreshold = 2.0;
 		options.CurvatureThreshold = 1.0;
-		options.SegSize = 0.2;
 		options.parallel_thresh = 5.0;
 		options.coplanar_thresh = 2.0;
-		options.angle_min = 20;
-		options.angle_max = 160;
 		options.e_pl2pldist = 0.05;
-		options.min_pl2pldist = 0.3;
-		options.max_dist_inspect = 1.0;
-		options.overlap_dist = 0.05;
-		options.max_dist_evaluate = 0.3;
+
+		if ((pair.first == 3 && pair.second == 18)
+			|| (pair.first == 5 && pair.second == 16)
+			|| (pair.first == 9 && pair.second == 12)
+			|| (pair.first == 11 && pair.second == 29)
+			|| (pair.first == 16 && pair.second == 24)
+			|| (pair.first == 17 && pair.second == 23)
+			|| (pair.first == 18 && pair.second == 22)
+			|| (pair.first == 19 && pair.second == 21))
+			options.max_plane_num = 40;
 
 		GPSCO::Registration regis_(options);
 
@@ -197,7 +198,9 @@ int main(int argc, char** argv)
 		time_plane_cluster += regis_.time_plane_cluster;
 		time_Match += regis_.time_Match;
 		time_Verify += regis_.time_Verify;
-		time_total += regis_.time_Total;
+
+		if (regis_.IsSuccess)
+			time_total += regis_.time_Total;
 
 		// Write the data rows
 		outfile_rt << pair.first << " " << pair.second << std::endl;
@@ -248,7 +251,7 @@ int main(int argc, char** argv)
 			<< time_plane_cluster / float(RTs_GroundTruth.size()) << ","
 			<< time_Match / float(RTs_GroundTruth.size()) << ","
 			<< time_Verify / float(RTs_GroundTruth.size()) << ","
-			<< time_total / float(RTs_GroundTruth.size()) << "\n";
+			<< time_total / float(num_rtmatch) << "\n";
 
 	spdlog::info("Registration completed.");
 

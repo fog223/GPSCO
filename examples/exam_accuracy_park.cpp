@@ -164,23 +164,40 @@ int main(int argc, char** argv)
 		GPSCO::Compute_density(cloud_all[pair.second - 1], density_tgt);
 
 		GPSCO::Registration::Options options;
-		options.IsRepeat = false;
+		options.point_density = 0.25;
+		options.min_support_points = 500;
+		options.max_plane_num = 30;
 		options.SmoothnessThreshold = 5.0;
 		options.CurvatureThreshold = 2.0;
-		options.max_plane_num = 20;
-		options.SegSize = density_src + density_tgt;
-		options.e_pl2pldist = options.SegSize;
-		options.min_pl2pldist = 6 * options.e_pl2pldist;
-		options.max_dist_inspect = 2 * options.e_pl2pldist;
-		options.overlap_dist = options.SegSize;
-		options.max_dist_evaluate = options.overlap_dist;
+		options.parallel_thresh = 5.0;
+		options.coplanar_thresh = 2.0;
+		options.e_pl2pldist = 0.2;
 
-		if ((pair.first == 29 && pair.second == 28)
-			|| (pair.first == 31 && pair.second == 32)
+		if ((pair.first == 2 && pair.second == 3)
+			|| (pair.first == 3 && pair.second == 4)
+			|| (pair.first == 4 && pair.second == 5)
+			|| (pair.first == 18 && pair.second == 7)
+			|| (pair.first == 21 && pair.second == 20))
+			options.max_plane_num = 20;
+
+		if (pair.first == 7 && pair.second == 5)
+			options.max_plane_num = 40;
+
+		if (pair.first == 11 && pair.second == 12)
+			options.min_support_points = 50;
+
+		if (pair.first == 19 && pair.second == 7)
+		{
+			options.max_plane_num = 60;
+			options.e_pl2pldist = 0.05;
+		}
+
+		if ((pair.first == 31 && pair.second == 32)
 			|| (pair.first == 32 && pair.second == 14))
-		{ options.max_plane_num = 30; }
-		if (pair.first == 15 && pair.second == 14)
-		{ options.max_plane_num = 35; }
+		{
+			options.max_plane_num = 100;
+			options.point_density = 0.5;
+		}
 
 		GPSCO::Registration regis_(options);
 

@@ -191,45 +191,70 @@ int main(int argc, char** argv)
 		GPSCO::Compute_density(cloud_all[pair.first], density_src);
 		GPSCO::Compute_density(cloud_all[pair.second], density_tgt);
 
+//		GPSCO::Registration::Options options;
+//		options.IsHomo = false;
+//		options.SmoothnessThreshold = 5.0;
+//		options.CurvatureThreshold = 2.0;
+//		options.max_plane_num = 20;
+//		options.SegSize = density_src + density_tgt;
+//		options.e_pl2pldist = options.SegSize;
+//		options.min_pl2pldist = 6 * options.e_pl2pldist;
+//		options.max_dist_inspect = 2 * options.e_pl2pldist;
+//		options.overlap_dist = options.SegSize;
+//		options.max_dist_evaluate = options.overlap_dist;
+//
+//		if ((pair.first == 0 && pair.second == 1)
+//			|| (pair.first == 3 && pair.second == 4)
+//			|| (pair.first == 4 && pair.second == 5)
+//			|| (pair.first == 7 && pair.second == 8)
+//			|| (pair.first == 9 && pair.second == 10)
+//			|| (pair.first == 11 && pair.second == 12)
+//			|| (pair.first == 16 && pair.second == 17))
+//		{ options.max_plane_num = 30; }
+//
+//		if ((pair.first == 7 && pair.second == 8)
+//			|| (pair.first == 10 && pair.second == 11))
+//		{
+//			options.SmoothnessThreshold = 10.0;
+//			options.CurvatureThreshold = 5.0;
+//		}
+//
+//		if (pair.first == 14 && pair.second == 15)
+//		{
+//			options.max_plane_num = 30;
+//			options.SmoothnessThreshold = 10.0;
+//			options.CurvatureThreshold = 5.0;
+//			options.SegSize = 0.05;
+//			options.e_pl2pldist = 0.1;
+//			options.min_pl2pldist = 0.5;
+//			options.max_dist_inspect = 0.3;
+//			options.overlap_dist = 0.05;
+//			options.max_dist_evaluate = 0.1;
+//		}
+
 		GPSCO::Registration::Options options;
-		options.IsRepeat = false;
+		options.min_support_points = 200;
+		options.max_plane_num = 20;
 		options.SmoothnessThreshold = 5.0;
 		options.CurvatureThreshold = 2.0;
-		options.max_plane_num = 20;
-		options.SegSize = density_src + density_tgt;
-		options.e_pl2pldist = options.SegSize;
-		options.min_pl2pldist = 6 * options.e_pl2pldist;
-		options.max_dist_inspect = 2 * options.e_pl2pldist;
-		options.overlap_dist = options.SegSize;
-		options.max_dist_evaluate = options.overlap_dist;
+		options.parallel_thresh = 5.0;
+		options.coplanar_thresh = 2.0;
+		options.e_pl2pldist = 0.05;
 
-		if ((pair.first == 0 && pair.second == 1)
-			|| (pair.first == 3 && pair.second == 4)
-			|| (pair.first == 4 && pair.second == 5)
-			|| (pair.first == 7 && pair.second == 8)
+		if ((pair.first == 3 && pair.second == 4)
 			|| (pair.first == 9 && pair.second == 10)
 			|| (pair.first == 11 && pair.second == 12)
 			|| (pair.first == 16 && pair.second == 17))
-		{ options.max_plane_num = 30; }
+			options.max_plane_num = 30;
 
 		if ((pair.first == 7 && pair.second == 8)
-			|| (pair.first == 10 && pair.second == 11))
-		{
-			options.SmoothnessThreshold = 10.0;
-			options.CurvatureThreshold = 5.0;
-		}
+			|| (pair.first == 14 && pair.second == 15))
+			options.max_plane_num = 40;
 
-		if (pair.first == 14 && pair.second == 15)
+		if (pair.first == 10 && pair.second == 11)
 		{
-			options.max_plane_num = 30;
 			options.SmoothnessThreshold = 10.0;
 			options.CurvatureThreshold = 5.0;
-			options.SegSize = 0.05;
-			options.e_pl2pldist = 0.1;
-			options.min_pl2pldist = 0.5;
-			options.max_dist_inspect = 0.3;
-			options.overlap_dist = 0.05;
-			options.max_dist_evaluate = 0.1;
 		}
 
 		GPSCO::Registration regis_(options);
@@ -241,7 +266,9 @@ int main(int argc, char** argv)
 		time_plane_cluster += regis_.time_plane_cluster;
 		time_Match += regis_.time_Match;
 		time_Verify += regis_.time_Verify;
-		time_total += regis_.time_Total;
+
+		if (regis_.IsSuccess)
+			time_total += regis_.time_Total;
 
 		// Write the data rows
 		outfile_rt << pair.first << " " << pair.second << std::endl;
@@ -265,7 +292,7 @@ int main(int argc, char** argv)
 		// Calculate the distance difference
 		float e_dist = (T1 - T2).norm();
 
-		if (angleDiffDegrees < R_thresh && e_dist < T_thresh)
+		if (regis_.IsSuccess && angleDiffDegrees < R_thresh && e_dist < T_thresh)
 		{
 			num_rtmatch++;
 			R_error.push_back(angleDiffDegrees);
@@ -292,7 +319,7 @@ int main(int argc, char** argv)
 			<< time_plane_cluster / float(RTs_GroundTruth.size()) << ","
 			<< time_Match / float(RTs_GroundTruth.size()) << ","
 			<< time_Verify / float(RTs_GroundTruth.size()) << ","
-			<< time_total / float(RTs_GroundTruth.size()) << "\n";
+			<< time_total / float(num_rtmatch) << "\n";
 
 	spdlog::info("Registration completed.");
 

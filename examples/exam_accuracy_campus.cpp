@@ -163,22 +163,49 @@ int main(int argc, char** argv)
 		GPSCO::Compute_density(cloud_all[pair.first - 1], density_src);
 		GPSCO::Compute_density(cloud_all[pair.second - 1], density_tgt);
 
+//		GPSCO::Registration::Options options;
+//		options.IsHomo = false;
+//		options.SmoothnessThreshold = 5.0;
+//		options.CurvatureThreshold = 2.0;
+//		options.max_plane_num = 20;
+//		options.SegSize = (density_src + density_tgt) / 2;
+//		options.e_pl2pldist = options.SegSize;
+//		options.min_pl2pldist = 6 * options.e_pl2pldist;
+//		options.max_dist_inspect = 2 * options.e_pl2pldist;
+//		options.overlap_dist = options.SegSize;
+//		options.max_dist_evaluate = options.overlap_dist;
+//
+//		if (pair.first == 1 && pair.second == 2)
+//		{ options.e_pl2pldist = 2 * options.SegSize; }
+//		if (pair.first == 9 && pair.second == 10)
+//		{ options.max_plane_num = 10; }
+
 		GPSCO::Registration::Options options;
-		options.IsRepeat = false;
+		options.point_density = 0.25;
+		options.min_support_points = 50;
+		options.max_plane_num = 30;
 		options.SmoothnessThreshold = 5.0;
 		options.CurvatureThreshold = 2.0;
-		options.max_plane_num = 20;
-		options.SegSize = (density_src + density_tgt) / 2;
-		options.e_pl2pldist = options.SegSize;
-		options.min_pl2pldist = 6 * options.e_pl2pldist;
-		options.max_dist_inspect = 2 * options.e_pl2pldist;
-		options.overlap_dist = options.SegSize;
-		options.max_dist_evaluate = options.overlap_dist;
+		options.parallel_thresh = 5.0;
+		options.coplanar_thresh = 2.0;
+		options.e_pl2pldist = 0.2;
 
-		if (pair.first == 1 && pair.second == 2)
-		{ options.e_pl2pldist = 2 * options.SegSize; }
-		if (pair.first == 9 && pair.second == 10)
-		{ options.max_plane_num = 10; }
+		if ((pair.first == 7 && pair.second == 6)
+			|| (pair.first == 8 && pair.second == 6)
+			|| (pair.first == 9 && pair.second == 10))
+			options.max_plane_num = 40;
+
+//		if (pair.first == 9 && pair.second == 10)
+//		{
+//			options.SmoothnessThreshold = 10.0;
+//			options.CurvatureThreshold = 5.0;
+//		}
+
+//		options.SegSize = 1.0;
+//		options.min_pl2pldist = 5.0;
+//		options.max_dist_inspect = 2.0;
+//		options.overlap_dist = 1.0;
+//		options.max_dist_evaluate = 1.0;
 
 		GPSCO::Registration regis_(options);
 
