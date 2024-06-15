@@ -190,7 +190,7 @@ namespace GPSCO
 			float max_dist_evaluate = 0.3;
 
 			// wait time (Beyond that time, the registration is considered to have failed.)
-			int wait_time = 20; // s
+			int wait_time = 10; // s
 			clock_t start;
 		};
 

@@ -202,6 +202,9 @@ namespace GPSCO
 			}
 		}
 
+		auto time_finsh = clock();
+		time_Total = (double)(time_finsh - time_start) / CLOCKS_PER_SEC;
+
 		spdlog::error("Transformation Matrix obtained failed.");
 		return false;
 	}
