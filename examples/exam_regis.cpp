@@ -51,7 +51,7 @@ int main(int argc, char** argv)
 	options.CurvatureThreshold = 2.0;
 	options.parallel_thresh = 5.0;
 	options.coplanar_thresh = 2.0;
-	options.e_pl2pldist = 0.2;
+	options.e_pl2pldist = 0.05;
 
 	GPSCO::Registration regis_(options);
 	regis_.SetCloud(cloud_src, cloud_tgt);
