@@ -39,6 +39,9 @@ int main(int argc, char** argv)
 					 "the num of the source point cloud points is {}", cloud_src->size(), cloud_tgt->size());
 	}
 
+	// If the point cloud quantity is too large (>1e6), downsampling is necessary.
+	// Typically, several hundred thousand points per scan are sufficient.
+
 	GPSCO::Registration::Options options;
 	options.scale = 0.01; // smaller values(Indoor,such as 0.01); larger values(outdoor, such as 0.25)
 	options.min_support_points = 500;
