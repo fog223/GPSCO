@@ -43,14 +43,15 @@ int main(int argc, char** argv)
 	// Typically, several hundred thousand points per scan are sufficient.
 
 	GPSCO::Registration::Options options;
-	options.scale = 0.01; // smaller values(Indoor,such as 0.01); larger values(outdoor, such as 0.25)
+	options.scale = 0.25; // smaller values(Indoor,such as 0.01); larger values(outdoor, such as 0.25)
+	options.wait_time = 50;
 	options.min_support_points = 500;
 	options.max_plane_num = 30;
 	options.SmoothnessThreshold = 5.0;
 	options.CurvatureThreshold = 2.0;
 	options.parallel_thresh = 5.0;
 	options.coplanar_thresh = 2.0;
-	options.e_pl2pldist = 0.05;
+	options.e_pl2pldist = 0.2;
 
 	GPSCO::Registration regis_(options);
 	regis_.SetCloud(cloud_src, cloud_tgt);
@@ -60,7 +61,7 @@ int main(int argc, char** argv)
 		outfile << regis_.GetRT() << std::endl;
 		outfile.close();
 
-		spdlog::info("Registration Successful!");
+		spdlog::info("Registration completed!");
 		std::cout << regis_.GetRT() << std::endl;
 	}
 	else
