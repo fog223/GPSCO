@@ -150,8 +150,8 @@ namespace GPSCO
 
 	bool Compute_density(cloudptr points, float& density)
 	{
-		float dist_max = 100.0;
-		density = pcl::getMeanPointDensity<pcl::PointXYZ>(points, dist_max, 8);
+//		float dist_max = 100.0;
+//		density = pcl::getMeanPointDensity<pcl::PointXYZ>(points, dist_max, 8);
 		return true;
 	}
 

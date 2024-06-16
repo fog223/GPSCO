@@ -2,6 +2,7 @@
 #include <unordered_map>
 #include <set>
 #include <random>
+#include <thread>
 // PCL
 #include <pcl/point_types.h>
 #include <pcl/io/pcd_io.h>
